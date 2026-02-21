@@ -17,61 +17,95 @@ const httpServer = http.createServer((req, res) => {
 
 const wss = new WebSocketServer({ server: httpServer });
 
-const clients = new Set();
+// Теперь храним не просто сокеты, а Map: ws → { name }
+const clients = new Map();
 
-// Хранилище истории — максимум 100 последних сообщений
 const MAX_HISTORY = 100;
 const history = [];
 
-wss.on("connection", (ws) => {
-  clients.add(ws);
-  console.log(`Новый клиент. Всего: ${clients.size}`);
-
-  // Отправляем новому клиенту всю историю сразу при подключении
-  if (history.length > 0) {
-    ws.send(JSON.stringify({ type: "history", messages: history }));
+// Рассылка пакета всем или всем кроме одного
+function broadcast(payload, exclude = null) {
+  const data = JSON.stringify(payload);
+  for (const [client] of clients) {
+    if (client !== exclude && client.readyState === 1) {
+      client.send(data);
+    }
   }
+}
+
+// Считаем онлайн и рассылаем всем
+function broadcastOnline() {
+  broadcast({ type: "online", count: clients.size });
+}
+
+wss.on("connection", (ws) => {
+  // Временное имя до получения join
+  clients.set(ws, { name: "Аноним" });
 
   ws.on("message", (data) => {
     let parsed;
-
-    // Парсим входящее сообщение
     try {
       parsed = JSON.parse(data.toString());
     } catch {
-      return; // Игнорируем невалидный JSON
+      return;
     }
 
-    // Добавляем время на сервере — клиент не может подделать
-    const message = {
-      text: parsed.text,
-      time: new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
-    };
+    // --- Пользователь представился ---
+    if (parsed.type === "join") {
+      const name = (parsed.name || "Аноним").slice(0, 20).trim();
+      clients.set(ws, { name });
 
-    // Сохраняем в историю, обрезаем если превысили лимит
-    history.push(message);
-    if (history.length > MAX_HISTORY) history.shift();
-
-    console.log("Сообщение:", message.text);
-
-    // Рассылаем всем клиентам кроме отправителя
-    const payload = JSON.stringify({ type: "message", message });
-
-    for (const client of clients) {
-      if (client !== ws && client.readyState === 1) {
-        client.send(payload);
+      // Отправляем историю новому участнику
+      if (history.length > 0) {
+        ws.send(JSON.stringify({ type: "history", messages: history }));
       }
+
+      // Уведомляем всех о новом участнике
+      broadcast({ type: "system", text: `${name} вошёл в чат` });
+      broadcastOnline();
+
+      console.log(`${name} подключился. Всего: ${clients.size}`);
+      return;
+    }
+
+    // --- Индикатор "печатает..." ---
+    if (parsed.type === "typing") {
+      const { name } = clients.get(ws);
+      // Рассылаем всем кроме отправителя
+      broadcast({ type: "typing", name, isTyping: parsed.isTyping }, ws);
+      return;
+    }
+
+    // --- Обычное сообщение ---
+    if (parsed.type === "message") {
+      const { name } = clients.get(ws);
+      const message = {
+        name,
+        text: parsed.text,
+        time: new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
+      };
+
+      history.push(message);
+      if (history.length > MAX_HISTORY) history.shift();
+
+      // Отправляем всем кроме отправителя
+      broadcast({ type: "message", message }, ws);
     }
   });
 
   ws.on("close", () => {
+    const { name } = clients.get(ws) || {};
     clients.delete(ws);
-    console.log(`Клиент ушёл. Осталось: ${clients.size}`);
+
+    if (name) {
+      broadcast({ type: "system", text: `${name} покинул чат` });
+    }
+    broadcastOnline();
+    console.log(`${name || "?"} отключился. Осталось: ${clients.size}`);
   });
 });
 
 const PORT = process.env.PORT || 3000;
-
 httpServer.listen(PORT, () => {
   console.log(`Сервер запущен на порту ${PORT}`);
 });
