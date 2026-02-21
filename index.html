@@ -3,33 +3,82 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Простой чат</title>
+  <title>Чат</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
       height: 100%;
-      overflow: hidden; /* запрещаем скролл самой страницы */
-    }
-
-    body {
+      overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: #f0f0f0;
-      display: flex;
-      justify-content: center;
     }
 
-    /* Обёртка — занимает весь экран и не двигается */
+    /* ===== Экран ввода имени ===== */
+    #name-screen {
+      position: fixed;
+      inset: 0;
+      background: #0078ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    #name-screen.hidden { display: none; }
+
+    .name-box {
+      background: #fff;
+      border-radius: 20px;
+      padding: 32px 28px;
+      width: 90%;
+      max-width: 360px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,.2);
+    }
+
+    .name-box h2 {
+      font-size: 22px;
+      margin-bottom: 6px;
+      color: #111;
+    }
+
+    .name-box p {
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 20px;
+    }
+
+    .name-box input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1.5px solid #ddd;
+      border-radius: 12px;
+      font-size: 16px;
+      outline: none;
+      margin-bottom: 14px;
+    }
+
+    .name-box input:focus { border-color: #0078ff; }
+
+    .name-box button {
+      width: 100%;
+      padding: 13px;
+      background: #0078ff;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .name-box button:hover { background: #005ecc; }
+
+    /* ===== Основной чат ===== */
     #chat-wrapper {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      inset: 0;
       display: flex;
       flex-direction: column;
       background: #f0f0f0;
@@ -40,81 +89,147 @@
       flex-shrink: 0;
       background: #0078ff;
       color: #fff;
-      padding: 14px 16px;
-      font-size: 17px;
-      font-weight: 600;
+      padding: 12px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 8px;
+    }
+
+    .header-left { display: flex; flex-direction: column; }
+
+    #header-title {
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    #online-count {
+      font-size: 12px;
+      opacity: 0.85;
+      margin-top: 1px;
     }
 
     #status {
       font-size: 12px;
-      font-weight: 400;
-      opacity: 0.85;
+      opacity: 0.8;
+      white-space: nowrap;
     }
 
-    /* --- Список сообщений --- */
-    /* flex: 1 + overflow-y: auto — занимает всё место между шапкой и формой */
+    /* --- Сообщения --- */
     #messages {
       flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 12px 16px;
+      padding: 10px 12px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
     }
 
-    /* --- Сообщение --- */
+    /* Группа: аватарка + сообщение */
+    .msg-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .msg-row.mine { flex-direction: row-reverse; }
+
+    /* Аватарка */
+    .avatar {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      text-transform: uppercase;
+    }
+
+    /* Скрываем аватарку у своих сообщений */
+    .msg-row.mine .avatar { display: none; }
+
+    /* Пузырь сообщения */
     .msg {
-      max-width: 75%;
-      padding: 8px 12px;
+      max-width: 72%;
+      padding: 7px 12px 5px;
       border-radius: 16px;
       font-size: 15px;
       line-height: 1.4;
       word-break: break-word;
     }
 
-    .msg .time {
+    /* Имя автора над сообщением */
+    .msg .author {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 2px;
       display: block;
-      font-size: 11px;
-      margin-top: 4px;
-      opacity: 0.65;
-      text-align: right;
     }
 
-    .msg.mine {
-      align-self: flex-end;
+    .msg .text { display: block; }
+
+    .msg .time {
+      font-size: 11px;
+      opacity: 0.6;
+      float: right;
+      margin-left: 8px;
+      margin-top: 2px;
+    }
+
+    /* Мои */
+    .msg-row.mine .msg {
       background: #0078ff;
       color: #fff;
       border-bottom-right-radius: 4px;
     }
 
-    .msg.theirs {
-      align-self: flex-start;
+    .msg-row.mine .msg .author { display: none; }
+
+    /* Чужие */
+    .msg-row.theirs .msg {
       background: #fff;
       color: #222;
       border-bottom-left-radius: 4px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+      box-shadow: 0 1px 2px rgba(0,0,0,.1);
     }
 
-    .msg.system {
-      align-self: center;
+    /* Системные */
+    .msg-row.system {
+      justify-content: center;
+      margin: 4px 0;
+    }
+
+    .msg-row.system .msg {
       background: transparent;
       color: #999;
       font-size: 12px;
-      padding: 4px 8px;
+      padding: 2px 8px;
+      max-width: 100%;
+      text-align: center;
     }
 
-    /* --- Форма — всегда прилипает к низу --- */
+    /* ===== Индикатор "печатает..." ===== */
+    #typing-indicator {
+      flex-shrink: 0;
+      min-height: 20px;
+      padding: 0 16px 4px;
+      font-size: 12px;
+      color: #888;
+      font-style: italic;
+    }
+
+    /* ===== Форма ===== */
     #form {
       flex-shrink: 0;
       display: flex;
       align-items: center;
       gap: 8px;
       padding: 10px 12px;
-      /* Отступ снизу для iPhone с вырезом */
       padding-bottom: max(10px, env(safe-area-inset-bottom));
       background: #fff;
       border-top: 1px solid #e0e0e0;
@@ -125,7 +240,6 @@
       padding: 10px 14px;
       border: 1px solid #ccc;
       border-radius: 24px;
-      /* 16px и выше — запрет автозума на iOS */
       font-size: 16px;
       outline: none;
       background: #f8f8f8;
@@ -153,35 +267,45 @@
     #send-btn:hover  { background: #005ecc; }
     #send-btn:active { background: #0060cc; transform: scale(0.93); }
 
-    #send-btn svg {
-      width: 20px;
-      height: 20px;
-      fill: #fff;
-    }
+    #send-btn svg { width: 20px; height: 20px; fill: #fff; }
 
-    /* --- Десктоп: ограничиваем ширину по центру --- */
+    /* Десктоп */
     @media (min-width: 640px) {
       body { background: #dde3ea; }
-
-      #chat-wrapper {
+      #chat-wrapper, #name-screen {
         left: 50%;
+        right: auto;
         transform: translateX(-50%);
         width: 600px;
-        box-shadow: 0 0 30px rgba(0,0,0,.15);
       }
+      #chat-wrapper { box-shadow: 0 0 30px rgba(0,0,0,.15); }
     }
   </style>
 </head>
 <body>
 
-  <div id="chat-wrapper">
+  <!-- Экран ввода имени -->
+  <div id="name-screen">
+    <div class="name-box">
+      <h2>Добро пожаловать!</h2>
+      <p>Введите своё имя чтобы войти в чат</p>
+      <input id="name-input" type="text" placeholder="Ваше имя" maxlength="20" />
+      <button id="name-btn">Войти</button>
+    </div>
+  </div>
 
+  <!-- Основной чат -->
+  <div id="chat-wrapper">
     <div id="header">
-      <span>💬 Чат</span>
+      <div class="header-left">
+        <span id="header-title">💬 Чат</span>
+        <span id="online-count">загрузка...</span>
+      </div>
       <span id="status">Подключение...</span>
     </div>
 
     <div id="messages"></div>
+    <div id="typing-indicator"></div>
 
     <form id="form">
       <input
@@ -192,72 +316,222 @@
         enterkeyhint="send"
       />
       <button type="submit" id="send-btn">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M2 21l21-9L2 3v7l15 2-15 2z"/>
-        </svg>
+        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
       </button>
     </form>
-
   </div>
 
   <script>
-    const messagesEl = document.getElementById("messages");
-    const statusEl   = document.getElementById("status");
-    const form       = document.getElementById("form");
-    const input      = document.getElementById("input");
+    // ===== Элементы =====
+    const nameScreen   = document.getElementById("name-screen");
+    const nameInput    = document.getElementById("name-input");
+    const nameBtn      = document.getElementById("name-btn");
+    const messagesEl   = document.getElementById("messages");
+    const statusEl     = document.getElementById("status");
+    const onlineEl     = document.getElementById("online-count");
+    const typingEl     = document.getElementById("typing-indicator");
+    const form         = document.getElementById("form");
+    const input        = document.getElementById("input");
 
+    // ===== Имя пользователя =====
+    let myName = localStorage.getItem("chat_name") || "";
+
+    // Если имя уже есть — сразу скрываем экран
+    if (myName) {
+      nameScreen.classList.add("hidden");
+    }
+
+    // Кнопка "Войти"
+    function submitName() {
+      const val = nameInput.value.trim();
+      if (!val) return;
+      myName = val;
+      localStorage.setItem("chat_name", myName);
+      nameScreen.classList.add("hidden");
+      joinChat();
+    }
+
+    nameBtn.addEventListener("click", submitName);
+    nameInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submitName();
+    });
+
+    // ===== WebSocket =====
     const protocol = location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(`${protocol}://${window.location.host}`);
 
-    ws.onopen  = () => { statusEl.textContent = "Online ✅"; };
+    ws.onopen = () => {
+      statusEl.textContent = "Online ✅";
+      // Если имя уже было — сразу представляемся
+      if (myName) joinChat();
+    };
+
     ws.onclose = () => { statusEl.textContent = "Нет соединения ❌"; };
     ws.onerror = () => { statusEl.textContent = "Ошибка ⚠️"; };
 
+    // Представляемся серверу
+    function joinChat() {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "join", name: myName }));
+      }
+    }
+
+    // ===== Входящие пакеты =====
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
 
       if (data.type === "history") {
-        data.messages.forEach((msg) => addMessage(msg.text, "theirs", msg.time));
+        // История при входе
+        data.messages.forEach((msg) => addMessage(msg, "theirs"));
+
       } else if (data.type === "message") {
-        addMessage(data.message.text, "theirs", data.message.time);
+        // Новое сообщение от другого
+        addMessage(data.message, "theirs");
+
+      } else if (data.type === "system") {
+        // Системное уведомление (вошёл / покинул)
+        addSystemMessage(data.text);
+
+      } else if (data.type === "online") {
+        // Обновление счётчика онлайна
+        const word = data.count === 1 ? "участник" :
+                     data.count < 5  ? "участника" : "участников";
+        onlineEl.textContent = `${data.count} ${word} онлайн`;
+
+      } else if (data.type === "typing") {
+        // Индикатор "печатает..."
+        updateTyping(data.name, data.isTyping);
       }
     };
 
+    // ===== Отправка сообщения =====
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       const text = input.value.trim();
       if (!text || ws.readyState !== WebSocket.OPEN) return;
 
       const time = new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-      ws.send(JSON.stringify({ text }));
-      addMessage(text, "mine", time);
+      ws.send(JSON.stringify({ type: "message", text }));
+
+      // Показываем своё сообщение сразу
+      addMessage({ name: myName, text, time }, "mine");
 
       input.value = "";
       input.focus();
+      sendTyping(false); // сбрасываем индикатор
     });
 
-    function addMessage(text, type, time) {
-      const div = document.createElement("div");
-      div.className = `msg ${type}`;
+    // ===== Индикатор "печатает..." =====
+    let typingTimer = null;
+    const typingUsers = new Set();
 
-      div.appendChild(document.createTextNode(text));
+    input.addEventListener("input", () => {
+      sendTyping(true);
+      clearTimeout(typingTimer);
+      // Через 2 секунды без ввода — снимаем индикатор
+      typingTimer = setTimeout(() => sendTyping(false), 2000);
+    });
 
-      if (time) {
-        const timeEl = document.createElement("span");
-        timeEl.className = "time";
-        timeEl.textContent = time;
-        div.appendChild(timeEl);
+    function sendTyping(isTyping) {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "typing", isTyping }));
+      }
+    }
+
+    function updateTyping(name, isTyping) {
+      if (isTyping) {
+        typingUsers.add(name);
+      } else {
+        typingUsers.delete(name);
       }
 
-      messagesEl.appendChild(div);
+      if (typingUsers.size === 0) {
+        typingEl.textContent = "";
+      } else if (typingUsers.size === 1) {
+        const [who] = typingUsers;
+        typingEl.textContent = `${who} печатает...`;
+      } else {
+        typingEl.textContent = `Несколько человек печатают...`;
+      }
+    }
+
+    // ===== Рисуем сообщение =====
+    function addMessage(msg, type) {
+      const row = document.createElement("div");
+      row.className = `msg-row ${type}`;
+
+      // Аватарка (только для чужих)
+      if (type === "theirs") {
+        const av = document.createElement("div");
+        av.className = "avatar";
+        av.style.background = nameToColor(msg.name);
+        av.textContent = (msg.name || "?")[0];
+        row.appendChild(av);
+      }
+
+      // Пузырь
+      const bubble = document.createElement("div");
+      bubble.className = "msg";
+
+      // Имя автора
+      if (type === "theirs") {
+        const author = document.createElement("span");
+        author.className = "author";
+        author.style.color = nameToColor(msg.name);
+        author.textContent = msg.name;
+        bubble.appendChild(author);
+      }
+
+      // Текст
+      const textEl = document.createElement("span");
+      textEl.className = "text";
+      textEl.textContent = msg.text;
+      bubble.appendChild(textEl);
+
+      // Время
+      if (msg.time) {
+        const timeEl = document.createElement("span");
+        timeEl.className = "time";
+        timeEl.textContent = msg.time;
+        bubble.appendChild(timeEl);
+      }
+
+      row.appendChild(bubble);
+      messagesEl.appendChild(row);
       scrollToBottom();
+    }
+
+    // Системное сообщение (вошёл/покинул)
+    function addSystemMessage(text) {
+      const row = document.createElement("div");
+      row.className = "msg-row system";
+      const bubble = document.createElement("div");
+      bubble.className = "msg";
+      bubble.textContent = text;
+      row.appendChild(bubble);
+      messagesEl.appendChild(row);
+      scrollToBottom();
+    }
+
+    // ===== Генерация цвета из имени =====
+    // Один и тот же никнейм всегда получает один цвет
+    function nameToColor(name) {
+      const colors = [
+        "#e53935","#d81b60","#8e24aa","#3949ab",
+        "#1e88e5","#039be5","#00897b","#43a047",
+        "#f4511e","#fb8c00","#6d4c41","#546e7a",
+      ];
+      let hash = 0;
+      for (let i = 0; i < (name || "").length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return colors[Math.abs(hash) % colors.length];
     }
 
     function scrollToBottom() {
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
-    // Когда появляется клавиатура на мобильном — прокручиваем вниз
     window.visualViewport?.addEventListener("resize", scrollToBottom);
     window.visualViewport?.addEventListener("scroll", scrollToBottom);
   </script>
