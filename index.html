@@ -27,11 +27,7 @@
       z-index: 200;
     }
 
-    /* Экран пароля — синий фон без затемнения */
-    .modal-overlay.solid {
-      background: #0078ff;
-    }
-
+    .modal-overlay.solid { background: #0078ff; }
     .modal-overlay.hidden { display: none; }
 
     .modal-box {
@@ -104,23 +100,60 @@
       background: #f0f0f0;
     }
 
+    /* --- Шапка ---
+       Три колонки: левая и правая фиксированной ширины,
+       центральная растягивается — так название всегда точно по центру
+       и никогда не перекрывает боковые элементы.
+    */
     #header {
       flex-shrink: 0;
       background: #0078ff;
       color: #fff;
       padding: 10px 16px;
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      justify-content: space-between;
       gap: 8px;
     }
 
-    .header-left { display: flex; flex-direction: column; }
-    #header-title { font-size: 17px; font-weight: 700; }
-    #online-count { font-size: 12px; opacity: 0.85; margin-top: 1px; }
+    /* Левая колонка: онлайн и статус */
+    .header-left {
+      display: flex;
+      flex-direction: column;
+      min-width: 0; /* разрешаем обрезку если очень мало места */
+    }
 
-    .header-right { display: flex; align-items: center; gap: 10px; }
-    #status { font-size: 12px; opacity: 0.8; }
+    #online-count {
+      font-size: 12px;
+      opacity: 0.85;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #status {
+      font-size: 11px;
+      opacity: 0.75;
+      white-space: nowrap;
+    }
+
+    /* Центральная колонка: название мессенджера */
+    .header-center {
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    #header-title {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    /* Правая колонка: кнопка настроек, выровнена вправо */
+    .header-right {
+      display: flex;
+      justify-content: flex-end;
+    }
 
     #settings-btn {
       background: rgba(255,255,255,.2);
@@ -134,10 +167,12 @@
       justify-content: center;
       font-size: 17px;
       transition: background 0.15s;
+      flex-shrink: 0;
     }
 
     #settings-btn:hover { background: rgba(255,255,255,.35); }
 
+    /* --- Сообщения --- */
     #messages {
       flex: 1;
       overflow-y: auto;
@@ -196,6 +231,7 @@
       font-style: italic;
     }
 
+    /* --- Форма --- */
     #form {
       flex-shrink: 0;
       display: flex;
@@ -237,6 +273,7 @@
     #send-btn:active { transform: scale(0.93); }
     #send-btn svg { width: 20px; height: 20px; fill: #fff; }
 
+    /* Десктоп */
     @media (min-width: 640px) {
       body { background: #dde3ea; }
       #chat-wrapper, .modal-overlay {
@@ -254,7 +291,7 @@
   <div class="modal-overlay solid hidden" id="password-screen">
     <div class="modal-box">
       <div class="icon">🔒</div>
-      <h2>Вход в чат</h2>
+      <h2>Вход в Голубь</h2>
       <p>Введите пароль для доступа</p>
       <input id="password-input" type="password" placeholder="Пароль" />
       <div class="error-text" id="password-error"></div>
@@ -265,7 +302,7 @@
   <!-- 2. Экран ввода имени -->
   <div class="modal-overlay solid hidden" id="name-screen">
     <div class="modal-box">
-      <div class="icon">👋</div>
+      <div class="icon">🕊️</div>
       <h2>Добро пожаловать!</h2>
       <p>Введите своё имя или никнейм</p>
       <input id="name-input" type="text" placeholder="Ваше имя" maxlength="20" />
@@ -288,14 +325,23 @@
   <!-- Чат -->
   <div id="chat-wrapper">
     <div id="header">
+
+      <!-- Левая колонка: онлайн + статус подключения -->
       <div class="header-left">
-        <span id="header-title">💬 Чат</span>
         <span id="online-count">загрузка...</span>
-      </div>
-      <div class="header-right">
         <span id="status">Подключение...</span>
+      </div>
+
+      <!-- Центр: название мессенджера -->
+      <div class="header-center">
+        <span id="header-title">🕊️ Голубь</span>
+      </div>
+
+      <!-- Правая колонка: кнопка настроек -->
+      <div class="header-right">
         <button id="settings-btn" title="Настройки">⚙️</button>
       </div>
+
     </div>
 
     <div id="messages"></div>
@@ -331,67 +377,47 @@
     const input          = document.getElementById("input");
 
     // ===== Состояние =====
-    let myName     = localStorage.getItem("chat_name") || "";
-    let isAuthed   = false;   // прошли ли проверку пароля
-    let wsReady    = false;   // открыт ли WebSocket
+    let myName   = localStorage.getItem("chat_name") || "";
+    let wsReady  = false;
 
     // ===== WebSocket =====
     const protocol = location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(`${protocol}://${window.location.host}`);
 
-    ws.onopen = () => {
-      statusEl.textContent = "Online ✅";
-      wsReady = true;
-    };
-
-    ws.onclose = () => {
-      statusEl.textContent = "Нет соединения ❌";
-      wsReady = false;
-    };
-
-    ws.onerror = () => {
-      statusEl.textContent = "Ошибка ⚠️";
-    };
+    ws.onopen  = () => { statusEl.textContent = "Online ✅"; wsReady = true; };
+    ws.onclose = () => { statusEl.textContent = "Нет соединения ❌"; wsReady = false; };
+    ws.onerror = () => { statusEl.textContent = "Ошибка ⚠️"; };
 
     // ===== Входящие пакеты =====
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
 
-      // Сервер требует пароль
       if (data.type === "need-password") {
         passwordScreen.classList.remove("hidden");
         setTimeout(() => passwordInput.focus(), 100);
         return;
       }
 
-      // Пароль принят
       if (data.type === "auth-ok") {
-        isAuthed = true;
         passwordScreen.classList.add("hidden");
         passwordError.textContent = "";
-        // Если имя уже есть — сразу в чат, иначе экран ввода имени
-        if (myName) {
-          joinChat();
-        } else {
+        if (myName) { joinChat(); }
+        else {
           nameScreen.classList.remove("hidden");
           setTimeout(() => nameInput.focus(), 100);
         }
         return;
       }
 
-      // Ошибка от сервера
       if (data.type === "error") {
         if (data.code === "wrong-password") {
           passwordError.textContent = "Неверный пароль, попробуйте снова.";
           passwordInput.classList.add("error");
           passwordInput.value = "";
           setTimeout(() => passwordInput.classList.remove("error"), 500);
-          // Соединение закрыто сервером — переподключаемся
           setTimeout(() => location.reload(), 1500);
         }
-        if (data.code === "full") {
-          showFullScreen(data.text);
-        }
+        if (data.code === "full") { showFullScreen(data.text); }
         return;
       }
 
@@ -402,17 +428,11 @@
 
       if (data.type === "message") {
         addMessage(data.message, "theirs");
-        if (document.hidden) {
-          showNotification(data.message.name, data.message.text);
-          playSound();
-        }
+        if (document.hidden) { showNotification(data.message.name, data.message.text); playSound(); }
         return;
       }
 
-      if (data.type === "system") {
-        addSystemMessage(data.text);
-        return;
-      }
+      if (data.type === "system") { addSystemMessage(data.text); return; }
 
       if (data.type === "online") {
         const n = data.count;
@@ -421,14 +441,11 @@
         return;
       }
 
-      if (data.type === "typing") {
-        updateTyping(data.name, data.isTyping);
-      }
+      if (data.type === "typing") { updateTyping(data.name, data.isTyping); }
     };
 
-    // ===== Экран "чат заполнен" =====
+    // ===== Чат заполнен =====
     function showFullScreen(text) {
-      // Скрываем всё и показываем сообщение
       passwordScreen.classList.add("hidden");
       nameScreen.classList.add("hidden");
       const overlay = document.createElement("div");
@@ -443,7 +460,7 @@
       document.body.appendChild(overlay);
     }
 
-    // ===== Ввод пароля =====
+    // ===== Пароль =====
     function submitPassword() {
       const pwd = passwordInput.value.trim();
       if (!pwd) return;
@@ -454,7 +471,7 @@
     passwordBtn.addEventListener("click", submitPassword);
     passwordInput.addEventListener("keydown", (e) => { if (e.key === "Enter") submitPassword(); });
 
-    // ===== Ввод имени =====
+    // ===== Имя =====
     function submitName() {
       const val = nameInput.value.trim();
       if (!val) return;
@@ -491,7 +508,7 @@
     renameBtn.addEventListener("click", submitRename);
     renameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") submitRename(); });
 
-    // ===== Вход в чат =====
+    // ===== Вход =====
     function joinChat() {
       if (wsReady) {
         ws.send(JSON.stringify({ type: "join", name: myName }));
@@ -499,22 +516,20 @@
       }
     }
 
-    // ===== Отправка сообщения =====
+    // ===== Отправка =====
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       const text = input.value.trim();
       if (!text || !wsReady) return;
-
       const time = new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
       ws.send(JSON.stringify({ type: "message", text }));
       addMessage({ name: myName, text, time }, "mine");
-
       input.value = "";
       input.focus();
       sendTyping(false);
     });
 
-    // ===== Индикатор "печатает..." =====
+    // ===== Печатает... =====
     let typingTimer = null;
     const typingUsers = new Set();
 
@@ -531,29 +546,21 @@
     function updateTyping(name, isTyping) {
       if (isTyping) typingUsers.add(name);
       else          typingUsers.delete(name);
-
       if (typingUsers.size === 0)      typingEl.textContent = "";
       else if (typingUsers.size === 1) typingEl.textContent = `${[...typingUsers][0]} печатает...`;
       else                             typingEl.textContent = "Несколько человек печатают...";
     }
 
-    // ===== Service Worker и уведомления =====
-    let swRegistration = null;
-
+    // ===== Service Worker =====
     async function registerSW() {
       if (!("serviceWorker" in navigator)) return;
-      try {
-        swRegistration = await navigator.serviceWorker.register("/sw.js");
-      } catch (e) {}
+      try { await navigator.serviceWorker.register("/sw.js"); } catch (e) {}
     }
-
     registerSW();
 
     async function requestNotificationPermission() {
       if (!("Notification" in window)) return;
-      if (Notification.permission === "default") {
-        await Notification.requestPermission();
-      }
+      if (Notification.permission === "default") await Notification.requestPermission();
     }
 
     async function showNotification(title, body) {
