@@ -14,54 +14,45 @@
       background: #f0f0f0;
     }
 
-    /* ===== Экран ввода имени ===== */
-    #name-screen {
+    /* ===== Модальное окно (универсальное) ===== */
+    .modal-overlay {
       position: fixed;
       inset: 0;
-      background: #0078ff;
+      background: rgba(0,0,0,.45);
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 100;
+      z-index: 200;
     }
 
-    #name-screen.hidden { display: none; }
+    .modal-overlay.hidden { display: none; }
 
-    .name-box {
+    .modal-box {
       background: #fff;
       border-radius: 20px;
-      padding: 32px 28px;
+      padding: 28px 24px;
       width: 90%;
       max-width: 360px;
       text-align: center;
       box-shadow: 0 8px 32px rgba(0,0,0,.2);
     }
 
-    .name-box h2 {
-      font-size: 22px;
-      margin-bottom: 6px;
-      color: #111;
-    }
+    .modal-box h2 { font-size: 20px; margin-bottom: 6px; color: #111; }
+    .modal-box p  { font-size: 14px; color: #888; margin-bottom: 18px; }
 
-    .name-box p {
-      font-size: 14px;
-      color: #888;
-      margin-bottom: 20px;
-    }
-
-    .name-box input {
+    .modal-box input {
       width: 100%;
       padding: 12px 16px;
       border: 1.5px solid #ddd;
       border-radius: 12px;
       font-size: 16px;
       outline: none;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
 
-    .name-box input:focus { border-color: #0078ff; }
+    .modal-box input:focus { border-color: #0078ff; }
 
-    .name-box button {
+    .modal-btn {
       width: 100%;
       padding: 13px;
       background: #0078ff;
@@ -71,9 +62,17 @@
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
+      margin-bottom: 8px;
     }
 
-    .name-box button:hover { background: #005ecc; }
+    .modal-btn:hover { background: #005ecc; }
+
+    .modal-btn.secondary {
+      background: #f0f0f0;
+      color: #555;
+    }
+
+    .modal-btn.secondary:hover { background: #e0e0e0; }
 
     /* ===== Основной чат ===== */
     #chat-wrapper {
@@ -89,7 +88,7 @@
       flex-shrink: 0;
       background: #0078ff;
       color: #fff;
-      padding: 12px 16px;
+      padding: 10px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -98,22 +97,36 @@
 
     .header-left { display: flex; flex-direction: column; }
 
-    #header-title {
+    #header-title { font-size: 17px; font-weight: 700; }
+
+    #online-count { font-size: 12px; opacity: 0.85; margin-top: 1px; }
+
+    /* Правая часть шапки */
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #status { font-size: 12px; opacity: 0.8; }
+
+    /* Кнопка настроек в шапке */
+    #settings-btn {
+      background: rgba(255,255,255,.2);
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
       font-size: 17px;
-      font-weight: 700;
+      transition: background 0.15s;
     }
 
-    #online-count {
-      font-size: 12px;
-      opacity: 0.85;
-      margin-top: 1px;
-    }
-
-    #status {
-      font-size: 12px;
-      opacity: 0.8;
-      white-space: nowrap;
-    }
+    #settings-btn:hover { background: rgba(255,255,255,.35); }
 
     /* --- Сообщения --- */
     #messages {
@@ -126,7 +139,6 @@
       gap: 4px;
     }
 
-    /* Группа: аватарка + сообщение */
     .msg-row {
       display: flex;
       align-items: flex-end;
@@ -150,10 +162,9 @@
       text-transform: uppercase;
     }
 
-    /* Скрываем аватарку у своих сообщений */
     .msg-row.mine .avatar { display: none; }
 
-    /* Пузырь сообщения */
+    /* Пузырь */
     .msg {
       max-width: 72%;
       padding: 7px 12px 5px;
@@ -163,7 +174,6 @@
       word-break: break-word;
     }
 
-    /* Имя автора над сообщением */
     .msg .author {
       font-size: 12px;
       font-weight: 600;
@@ -181,7 +191,6 @@
       margin-top: 2px;
     }
 
-    /* Мои */
     .msg-row.mine .msg {
       background: #0078ff;
       color: #fff;
@@ -190,7 +199,6 @@
 
     .msg-row.mine .msg .author { display: none; }
 
-    /* Чужие */
     .msg-row.theirs .msg {
       background: #fff;
       color: #222;
@@ -198,7 +206,6 @@
       box-shadow: 0 1px 2px rgba(0,0,0,.1);
     }
 
-    /* Системные */
     .msg-row.system {
       justify-content: center;
       margin: 4px 0;
@@ -245,10 +252,7 @@
       background: #f8f8f8;
     }
 
-    #input:focus {
-      border-color: #0078ff;
-      background: #fff;
-    }
+    #input:focus { border-color: #0078ff; background: #fff; }
 
     #send-btn {
       flex-shrink: 0;
@@ -266,42 +270,58 @@
 
     #send-btn:hover  { background: #005ecc; }
     #send-btn:active { background: #0060cc; transform: scale(0.93); }
-
     #send-btn svg { width: 20px; height: 20px; fill: #fff; }
 
     /* Десктоп */
     @media (min-width: 640px) {
       body { background: #dde3ea; }
-      #chat-wrapper, #name-screen {
+      #chat-wrapper {
         left: 50%;
         right: auto;
         transform: translateX(-50%);
         width: 600px;
+        box-shadow: 0 0 30px rgba(0,0,0,.15);
       }
-      #chat-wrapper { box-shadow: 0 0 30px rgba(0,0,0,.15); }
+      .modal-overlay { left: 50%; right: auto; transform: translateX(-50%); width: 600px; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Экран ввода имени -->
-  <div id="name-screen">
-    <div class="name-box">
+  <!-- Модалка: ввод имени при первом входе -->
+  <div class="modal-overlay" id="name-screen">
+    <div class="modal-box">
       <h2>Добро пожаловать!</h2>
       <p>Введите своё имя чтобы войти в чат</p>
       <input id="name-input" type="text" placeholder="Ваше имя" maxlength="20" />
-      <button id="name-btn">Войти</button>
+      <button class="modal-btn" id="name-btn">Войти</button>
+    </div>
+  </div>
+
+  <!-- Модалка: смена имени -->
+  <div class="modal-overlay hidden" id="rename-screen">
+    <div class="modal-box">
+      <h2>Изменить имя</h2>
+      <p>Введите новое имя или никнейм</p>
+      <input id="rename-input" type="text" placeholder="Новое имя" maxlength="20" />
+      <button class="modal-btn" id="rename-btn">Сохранить</button>
+      <button class="modal-btn secondary" id="rename-cancel">Отмена</button>
     </div>
   </div>
 
   <!-- Основной чат -->
   <div id="chat-wrapper">
+
     <div id="header">
       <div class="header-left">
         <span id="header-title">💬 Чат</span>
         <span id="online-count">загрузка...</span>
       </div>
-      <span id="status">Подключение...</span>
+      <div class="header-right">
+        <span id="status">Подключение...</span>
+        <!-- Кнопка настроек (шестерёнка) -->
+        <button id="settings-btn" title="Настройки">⚙️</button>
+      </div>
     </div>
 
     <div id="messages"></div>
@@ -319,29 +339,34 @@
         <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
       </button>
     </form>
+
   </div>
 
   <script>
     // ===== Элементы =====
-    const nameScreen   = document.getElementById("name-screen");
-    const nameInput    = document.getElementById("name-input");
-    const nameBtn      = document.getElementById("name-btn");
-    const messagesEl   = document.getElementById("messages");
-    const statusEl     = document.getElementById("status");
-    const onlineEl     = document.getElementById("online-count");
-    const typingEl     = document.getElementById("typing-indicator");
-    const form         = document.getElementById("form");
-    const input        = document.getElementById("input");
+    const nameScreen    = document.getElementById("name-screen");
+    const nameInput     = document.getElementById("name-input");
+    const nameBtn       = document.getElementById("name-btn");
+    const renameScreen  = document.getElementById("rename-screen");
+    const renameInput   = document.getElementById("rename-input");
+    const renameBtn     = document.getElementById("rename-btn");
+    const renameCancel  = document.getElementById("rename-cancel");
+    const settingsBtn   = document.getElementById("settings-btn");
+    const messagesEl    = document.getElementById("messages");
+    const statusEl      = document.getElementById("status");
+    const onlineEl      = document.getElementById("online-count");
+    const typingEl      = document.getElementById("typing-indicator");
+    const form          = document.getElementById("form");
+    const input         = document.getElementById("input");
 
     // ===== Имя пользователя =====
     let myName = localStorage.getItem("chat_name") || "";
 
-    // Если имя уже есть — сразу скрываем экран
     if (myName) {
       nameScreen.classList.add("hidden");
     }
 
-    // Кнопка "Войти"
+    // Подтверждение первичного ввода имени
     function submitName() {
       const val = nameInput.value.trim();
       if (!val) return;
@@ -352,9 +377,40 @@
     }
 
     nameBtn.addEventListener("click", submitName);
-    nameInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") submitName();
+    nameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") submitName(); });
+
+    // ===== Смена имени =====
+    settingsBtn.addEventListener("click", () => {
+      renameInput.value = myName;
+      renameScreen.classList.remove("hidden");
+      renameInput.focus();
+      renameInput.select();
     });
+
+    renameCancel.addEventListener("click", () => {
+      renameScreen.classList.add("hidden");
+    });
+
+    function submitRename() {
+      const val = renameInput.value.trim();
+      if (!val) return;
+
+      const oldName = myName;
+      myName = val;
+      localStorage.setItem("chat_name", myName);
+      renameScreen.classList.add("hidden");
+
+      // Уведомляем сервер о смене имени
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "join", name: myName }));
+      }
+
+      // Системное сообщение локально
+      addSystemMessage(`Вы сменили имя: ${oldName} → ${myName}`);
+    }
+
+    renameBtn.addEventListener("click", submitRename);
+    renameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") submitRename(); });
 
     // ===== WebSocket =====
     const protocol = location.protocol === "https:" ? "wss" : "ws";
@@ -362,18 +418,18 @@
 
     ws.onopen = () => {
       statusEl.textContent = "Online ✅";
-      // Если имя уже было — сразу представляемся
       if (myName) joinChat();
     };
 
     ws.onclose = () => { statusEl.textContent = "Нет соединения ❌"; };
     ws.onerror = () => { statusEl.textContent = "Ошибка ⚠️"; };
 
-    // Представляемся серверу
     function joinChat() {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: "join", name: myName }));
       }
+      // Запрашиваем разрешение на уведомления при входе
+      requestNotificationPermission();
     }
 
     // ===== Входящие пакеты =====
@@ -381,30 +437,30 @@
       const data = JSON.parse(event.data);
 
       if (data.type === "history") {
-        // История при входе
         data.messages.forEach((msg) => addMessage(msg, "theirs"));
 
       } else if (data.type === "message") {
-        // Новое сообщение от другого
         addMessage(data.message, "theirs");
+        // Уведомление и звук только если вкладка неактивна
+        if (document.hidden) {
+          showNotification(data.message.name, data.message.text);
+          playSound();
+        }
 
       } else if (data.type === "system") {
-        // Системное уведомление (вошёл / покинул)
         addSystemMessage(data.text);
 
       } else if (data.type === "online") {
-        // Обновление счётчика онлайна
         const word = data.count === 1 ? "участник" :
                      data.count < 5  ? "участника" : "участников";
         onlineEl.textContent = `${data.count} ${word} онлайн`;
 
       } else if (data.type === "typing") {
-        // Индикатор "печатает..."
         updateTyping(data.name, data.isTyping);
       }
     };
 
-    // ===== Отправка сообщения =====
+    // ===== Отправка =====
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       const text = input.value.trim();
@@ -412,13 +468,11 @@
 
       const time = new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
       ws.send(JSON.stringify({ type: "message", text }));
-
-      // Показываем своё сообщение сразу
       addMessage({ name: myName, text, time }, "mine");
 
       input.value = "";
       input.focus();
-      sendTyping(false); // сбрасываем индикатор
+      sendTyping(false);
     });
 
     // ===== Индикатор "печатает..." =====
@@ -428,7 +482,6 @@
     input.addEventListener("input", () => {
       sendTyping(true);
       clearTimeout(typingTimer);
-      // Через 2 секунды без ввода — снимаем индикатор
       typingTimer = setTimeout(() => sendTyping(false), 2000);
     });
 
@@ -439,19 +492,67 @@
     }
 
     function updateTyping(name, isTyping) {
-      if (isTyping) {
-        typingUsers.add(name);
-      } else {
-        typingUsers.delete(name);
-      }
+      if (isTyping) { typingUsers.add(name); }
+      else          { typingUsers.delete(name); }
 
       if (typingUsers.size === 0) {
         typingEl.textContent = "";
       } else if (typingUsers.size === 1) {
-        const [who] = typingUsers;
-        typingEl.textContent = `${who} печатает...`;
+        typingEl.textContent = `${[...typingUsers][0]} печатает...`;
       } else {
-        typingEl.textContent = `Несколько человек печатают...`;
+        typingEl.textContent = "Несколько человек печатают...";
+      }
+    }
+
+    // ===== Уведомления =====
+    function requestNotificationPermission() {
+      if (!("Notification" in window)) return;
+      if (Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+    }
+
+    function showNotification(name, text) {
+      if (!("Notification" in window)) return;
+      if (Notification.permission !== "granted") return;
+
+      const n = new Notification(name, {
+        body: text,
+        // При клике на уведомление — фокусируем вкладку
+        tag: "chat-msg",
+      });
+
+      n.onclick = () => {
+        window.focus();
+        n.close();
+      };
+
+      // Уведомление само закроется через 4 секунды
+      setTimeout(() => n.close(), 4000);
+    }
+
+    // ===== Звук уведомления =====
+    // Генерируем короткий звук через Web Audio API — никаких внешних файлов
+    function playSound() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(880, ctx.currentTime);           // нота A5
+        osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.15); // плавный спуск
+
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.3);
+      } catch (e) {
+        // Если браузер не поддерживает — молча игнорируем
       }
     }
 
@@ -460,7 +561,6 @@
       const row = document.createElement("div");
       row.className = `msg-row ${type}`;
 
-      // Аватарка (только для чужих)
       if (type === "theirs") {
         const av = document.createElement("div");
         av.className = "avatar";
@@ -469,11 +569,9 @@
         row.appendChild(av);
       }
 
-      // Пузырь
       const bubble = document.createElement("div");
       bubble.className = "msg";
 
-      // Имя автора
       if (type === "theirs") {
         const author = document.createElement("span");
         author.className = "author";
@@ -482,13 +580,11 @@
         bubble.appendChild(author);
       }
 
-      // Текст
       const textEl = document.createElement("span");
       textEl.className = "text";
       textEl.textContent = msg.text;
       bubble.appendChild(textEl);
 
-      // Время
       if (msg.time) {
         const timeEl = document.createElement("span");
         timeEl.className = "time";
@@ -501,7 +597,6 @@
       scrollToBottom();
     }
 
-    // Системное сообщение (вошёл/покинул)
     function addSystemMessage(text) {
       const row = document.createElement("div");
       row.className = "msg-row system";
@@ -513,8 +608,7 @@
       scrollToBottom();
     }
 
-    // ===== Генерация цвета из имени =====
-    // Один и тот же никнейм всегда получает один цвет
+    // ===== Цвет из имени =====
     function nameToColor(name) {
       const colors = [
         "#e53935","#d81b60","#8e24aa","#3949ab",
