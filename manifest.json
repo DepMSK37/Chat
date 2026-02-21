@@ -1,0 +1,9 @@
+{
+  "name": "Чат",
+  "short_name": "Чат",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0078ff",
+  "theme_color": "#0078ff",
+  "description": "Простой чат"
+}
