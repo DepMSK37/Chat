@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- PWA манифест — нужен для корректной работы как приложения -->
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#0078ff" />
   <title>Чат</title>
@@ -17,15 +16,20 @@
       background: #f0f0f0;
     }
 
-    /* ===== Модальное окно ===== */
+    /* ===== Модальные окна ===== */
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,.45);
+      background: rgba(0,0,0,.5);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 200;
+    }
+
+    /* Экран пароля — синий фон без затемнения */
+    .modal-overlay.solid {
+      background: #0078ff;
     }
 
     .modal-overlay.hidden { display: none; }
@@ -37,11 +41,12 @@
       width: 90%;
       max-width: 360px;
       text-align: center;
-      box-shadow: 0 8px 32px rgba(0,0,0,.2);
+      box-shadow: 0 8px 32px rgba(0,0,0,.25);
     }
 
+    .modal-box .icon { font-size: 40px; margin-bottom: 12px; }
     .modal-box h2 { font-size: 20px; margin-bottom: 6px; color: #111; }
-    .modal-box p  { font-size: 14px; color: #888; margin-bottom: 18px; }
+    .modal-box p  { font-size: 14px; color: #888; margin-bottom: 18px; line-height: 1.5; }
 
     .modal-box input {
       width: 100%;
@@ -51,9 +56,25 @@
       font-size: 16px;
       outline: none;
       margin-bottom: 12px;
+      transition: border-color 0.2s;
     }
 
     .modal-box input:focus { border-color: #0078ff; }
+    .modal-box input.error { border-color: #e53935; animation: shake 0.3s; }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25%       { transform: translateX(-6px); }
+      75%       { transform: translateX(6px); }
+    }
+
+    .error-text {
+      font-size: 13px;
+      color: #e53935;
+      margin-bottom: 10px;
+      margin-top: -6px;
+      min-height: 18px;
+    }
 
     .modal-btn {
       width: 100%;
@@ -66,13 +87,15 @@
       font-weight: 600;
       cursor: pointer;
       margin-bottom: 8px;
+      transition: background 0.15s;
     }
 
     .modal-btn:hover { background: #005ecc; }
+    .modal-btn:disabled { background: #aaa; cursor: default; }
     .modal-btn.secondary { background: #f0f0f0; color: #555; }
     .modal-btn.secondary:hover { background: #e0e0e0; }
 
-    /* ===== Чат ===== */
+    /* ===== Основной чат ===== */
     #chat-wrapper {
       position: fixed;
       inset: 0;
@@ -109,7 +132,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #fff;
       font-size: 17px;
       transition: background 0.15s;
     }
@@ -212,40 +234,49 @@
     }
 
     #send-btn:hover  { background: #005ecc; }
-    #send-btn:active { background: #0060cc; transform: scale(0.93); }
+    #send-btn:active { transform: scale(0.93); }
     #send-btn svg { width: 20px; height: 20px; fill: #fff; }
 
     @media (min-width: 640px) {
       body { background: #dde3ea; }
-      #chat-wrapper {
-        left: 50%; right: auto;
-        transform: translateX(-50%);
-        width: 600px;
-        box-shadow: 0 0 30px rgba(0,0,0,.15);
-      }
-      .modal-overlay {
+      #chat-wrapper, .modal-overlay {
         left: 50%; right: auto;
         transform: translateX(-50%);
         width: 600px;
       }
+      #chat-wrapper { box-shadow: 0 0 30px rgba(0,0,0,.15); }
     }
   </style>
 </head>
 <body>
 
-  <!-- Экран ввода имени -->
-  <div class="modal-overlay" id="name-screen">
+  <!-- 1. Экран ввода пароля -->
+  <div class="modal-overlay solid hidden" id="password-screen">
     <div class="modal-box">
-      <h2>Добро пожаловать!</h2>
-      <p>Введите своё имя чтобы войти в чат</p>
-      <input id="name-input" type="text" placeholder="Ваше имя" maxlength="20" />
-      <button class="modal-btn" id="name-btn">Войти</button>
+      <div class="icon">🔒</div>
+      <h2>Вход в чат</h2>
+      <p>Введите пароль для доступа</p>
+      <input id="password-input" type="password" placeholder="Пароль" />
+      <div class="error-text" id="password-error"></div>
+      <button class="modal-btn" id="password-btn">Войти</button>
     </div>
   </div>
 
-  <!-- Смена имени -->
+  <!-- 2. Экран ввода имени -->
+  <div class="modal-overlay solid hidden" id="name-screen">
+    <div class="modal-box">
+      <div class="icon">👋</div>
+      <h2>Добро пожаловать!</h2>
+      <p>Введите своё имя или никнейм</p>
+      <input id="name-input" type="text" placeholder="Ваше имя" maxlength="20" />
+      <button class="modal-btn" id="name-btn">Войти в чат</button>
+    </div>
+  </div>
+
+  <!-- 3. Смена имени -->
   <div class="modal-overlay hidden" id="rename-screen">
     <div class="modal-box">
+      <div class="icon">✏️</div>
       <h2>Изменить имя</h2>
       <p>Введите новое имя или никнейм</p>
       <input id="rename-input" type="text" placeholder="Новое имя" maxlength="20" />
@@ -254,6 +285,7 @@
     </div>
   </div>
 
+  <!-- Чат -->
   <div id="chat-wrapper">
     <div id="header">
       <div class="header-left">
@@ -279,25 +311,150 @@
 
   <script>
     // ===== Элементы =====
-    const nameScreen   = document.getElementById("name-screen");
-    const nameInput    = document.getElementById("name-input");
-    const nameBtn      = document.getElementById("name-btn");
-    const renameScreen = document.getElementById("rename-screen");
-    const renameInput  = document.getElementById("rename-input");
-    const renameBtn    = document.getElementById("rename-btn");
-    const renameCancel = document.getElementById("rename-cancel");
-    const settingsBtn  = document.getElementById("settings-btn");
-    const messagesEl   = document.getElementById("messages");
-    const statusEl     = document.getElementById("status");
-    const onlineEl     = document.getElementById("online-count");
-    const typingEl     = document.getElementById("typing-indicator");
-    const form         = document.getElementById("form");
-    const input        = document.getElementById("input");
+    const passwordScreen = document.getElementById("password-screen");
+    const passwordInput  = document.getElementById("password-input");
+    const passwordBtn    = document.getElementById("password-btn");
+    const passwordError  = document.getElementById("password-error");
+    const nameScreen     = document.getElementById("name-screen");
+    const nameInput      = document.getElementById("name-input");
+    const nameBtn        = document.getElementById("name-btn");
+    const renameScreen   = document.getElementById("rename-screen");
+    const renameInput    = document.getElementById("rename-input");
+    const renameBtn      = document.getElementById("rename-btn");
+    const renameCancel   = document.getElementById("rename-cancel");
+    const settingsBtn    = document.getElementById("settings-btn");
+    const messagesEl     = document.getElementById("messages");
+    const statusEl       = document.getElementById("status");
+    const onlineEl       = document.getElementById("online-count");
+    const typingEl       = document.getElementById("typing-indicator");
+    const form           = document.getElementById("form");
+    const input          = document.getElementById("input");
 
-    // ===== Имя =====
-    let myName = localStorage.getItem("chat_name") || "";
-    if (myName) nameScreen.classList.add("hidden");
+    // ===== Состояние =====
+    let myName     = localStorage.getItem("chat_name") || "";
+    let isAuthed   = false;   // прошли ли проверку пароля
+    let wsReady    = false;   // открыт ли WebSocket
 
+    // ===== WebSocket =====
+    const protocol = location.protocol === "https:" ? "wss" : "ws";
+    const ws = new WebSocket(`${protocol}://${window.location.host}`);
+
+    ws.onopen = () => {
+      statusEl.textContent = "Online ✅";
+      wsReady = true;
+    };
+
+    ws.onclose = () => {
+      statusEl.textContent = "Нет соединения ❌";
+      wsReady = false;
+    };
+
+    ws.onerror = () => {
+      statusEl.textContent = "Ошибка ⚠️";
+    };
+
+    // ===== Входящие пакеты =====
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      // Сервер требует пароль
+      if (data.type === "need-password") {
+        passwordScreen.classList.remove("hidden");
+        setTimeout(() => passwordInput.focus(), 100);
+        return;
+      }
+
+      // Пароль принят
+      if (data.type === "auth-ok") {
+        isAuthed = true;
+        passwordScreen.classList.add("hidden");
+        passwordError.textContent = "";
+        // Если имя уже есть — сразу в чат, иначе экран ввода имени
+        if (myName) {
+          joinChat();
+        } else {
+          nameScreen.classList.remove("hidden");
+          setTimeout(() => nameInput.focus(), 100);
+        }
+        return;
+      }
+
+      // Ошибка от сервера
+      if (data.type === "error") {
+        if (data.code === "wrong-password") {
+          passwordError.textContent = "Неверный пароль, попробуйте снова.";
+          passwordInput.classList.add("error");
+          passwordInput.value = "";
+          setTimeout(() => passwordInput.classList.remove("error"), 500);
+          // Соединение закрыто сервером — переподключаемся
+          setTimeout(() => location.reload(), 1500);
+        }
+        if (data.code === "full") {
+          showFullScreen(data.text);
+        }
+        return;
+      }
+
+      if (data.type === "history") {
+        data.messages.forEach((msg) => addMessage(msg, "theirs"));
+        return;
+      }
+
+      if (data.type === "message") {
+        addMessage(data.message, "theirs");
+        if (document.hidden) {
+          showNotification(data.message.name, data.message.text);
+          playSound();
+        }
+        return;
+      }
+
+      if (data.type === "system") {
+        addSystemMessage(data.text);
+        return;
+      }
+
+      if (data.type === "online") {
+        const n = data.count;
+        const word = n === 1 ? "участник" : n < 5 ? "участника" : "участников";
+        onlineEl.textContent = `${n} / 15 ${word} онлайн`;
+        return;
+      }
+
+      if (data.type === "typing") {
+        updateTyping(data.name, data.isTyping);
+      }
+    };
+
+    // ===== Экран "чат заполнен" =====
+    function showFullScreen(text) {
+      // Скрываем всё и показываем сообщение
+      passwordScreen.classList.add("hidden");
+      nameScreen.classList.add("hidden");
+      const overlay = document.createElement("div");
+      overlay.className = "modal-overlay solid";
+      overlay.innerHTML = `
+        <div class="modal-box">
+          <div class="icon">🚫</div>
+          <h2>Чат заполнен</h2>
+          <p>${text}</p>
+          <button class="modal-btn" onclick="location.reload()">Попробовать снова</button>
+        </div>`;
+      document.body.appendChild(overlay);
+    }
+
+    // ===== Ввод пароля =====
+    function submitPassword() {
+      const pwd = passwordInput.value.trim();
+      if (!pwd) return;
+      passwordError.textContent = "";
+      ws.send(JSON.stringify({ type: "auth", password: pwd }));
+    }
+
+    passwordBtn.addEventListener("click", submitPassword);
+    passwordInput.addEventListener("keydown", (e) => { if (e.key === "Enter") submitPassword(); });
+
+    // ===== Ввод имени =====
     function submitName() {
       const val = nameInput.value.trim();
       if (!val) return;
@@ -327,130 +484,31 @@
       myName = val;
       localStorage.setItem("chat_name", myName);
       renameScreen.classList.add("hidden");
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: "join", name: myName }));
-      }
+      if (wsReady) ws.send(JSON.stringify({ type: "join", name: myName }));
       addSystemMessage(`Вы сменили имя: ${oldName} → ${myName}`);
     }
 
     renameBtn.addEventListener("click", submitRename);
     renameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") submitRename(); });
 
-    // ===== Service Worker =====
-    let swRegistration = null;
-
-    async function registerSW() {
-      if (!("serviceWorker" in navigator)) return;
-      try {
-        swRegistration = await navigator.serviceWorker.register("/sw.js");
-        console.log("Service Worker зарегистрирован");
-      } catch (e) {
-        console.warn("SW не зарегистрирован:", e);
-      }
-    }
-
-    // Регистрируем SW сразу при загрузке страницы
-    registerSW();
-
-    // ===== Уведомления =====
-    async function requestNotificationPermission() {
-      if (!("Notification" in window)) return;
-      if (Notification.permission === "default") {
-        await Notification.requestPermission();
-      }
-    }
-
-    async function showNotification(title, body) {
-      if (!("Notification" in window)) return;
-      if (Notification.permission !== "granted") return;
-
-      // Ждём готовности Service Worker
-      const reg = await navigator.serviceWorker?.ready;
-
-      if (reg) {
-        // Android: показываем через Service Worker — единственный рабочий способ
-        reg.active?.postMessage({ type: "show-notification", title, body });
-      } else {
-        // Десктоп fallback: через Notification API напрямую
-        const n = new Notification(title, { body, tag: "chat-msg" });
-        n.onclick = () => { window.focus(); n.close(); };
-        setTimeout(() => n.close(), 4000);
-      }
-    }
-
-    // ===== Звук (Web Audio API) =====
-    function playSound() {
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc  = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.25, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.3);
-      } catch (e) {}
-    }
-
-    // ===== WebSocket =====
-    const protocol = location.protocol === "https:" ? "wss" : "ws";
-    const ws = new WebSocket(`${protocol}://${window.location.host}`);
-
-    ws.onopen = () => {
-      statusEl.textContent = "Online ✅";
-      if (myName) joinChat();
-    };
-
-    ws.onclose = () => { statusEl.textContent = "Нет соединения ❌"; };
-    ws.onerror = () => { statusEl.textContent = "Ошибка ⚠️"; };
-
+    // ===== Вход в чат =====
     function joinChat() {
-      if (ws.readyState === WebSocket.OPEN) {
+      if (wsReady) {
         ws.send(JSON.stringify({ type: "join", name: myName }));
+        requestNotificationPermission();
       }
-      requestNotificationPermission();
     }
 
-    // ===== Входящие пакеты =====
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-
-      if (data.type === "history") {
-        data.messages.forEach((msg) => addMessage(msg, "theirs"));
-
-      } else if (data.type === "message") {
-        addMessage(data.message, "theirs");
-        // Уведомление только когда приложение свёрнуто
-        if (document.hidden) {
-          showNotification(data.message.name, data.message.text);
-          playSound();
-        }
-
-      } else if (data.type === "system") {
-        addSystemMessage(data.text);
-
-      } else if (data.type === "online") {
-        const word = data.count === 1 ? "участник" :
-                     data.count < 5  ? "участника" : "участников";
-        onlineEl.textContent = `${data.count} ${word} онлайн`;
-
-      } else if (data.type === "typing") {
-        updateTyping(data.name, data.isTyping);
-      }
-    };
-
-    // ===== Отправка =====
+    // ===== Отправка сообщения =====
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       const text = input.value.trim();
-      if (!text || ws.readyState !== WebSocket.OPEN) return;
+      if (!text || !wsReady) return;
+
       const time = new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
       ws.send(JSON.stringify({ type: "message", text }));
       addMessage({ name: myName, text, time }, "mine");
+
       input.value = "";
       input.focus();
       sendTyping(false);
@@ -467,9 +525,7 @@
     });
 
     function sendTyping(isTyping) {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: "typing", isTyping }));
-      }
+      if (wsReady) ws.send(JSON.stringify({ type: "typing", isTyping }));
     }
 
     function updateTyping(name, isTyping) {
@@ -479,6 +535,54 @@
       if (typingUsers.size === 0)      typingEl.textContent = "";
       else if (typingUsers.size === 1) typingEl.textContent = `${[...typingUsers][0]} печатает...`;
       else                             typingEl.textContent = "Несколько человек печатают...";
+    }
+
+    // ===== Service Worker и уведомления =====
+    let swRegistration = null;
+
+    async function registerSW() {
+      if (!("serviceWorker" in navigator)) return;
+      try {
+        swRegistration = await navigator.serviceWorker.register("/sw.js");
+      } catch (e) {}
+    }
+
+    registerSW();
+
+    async function requestNotificationPermission() {
+      if (!("Notification" in window)) return;
+      if (Notification.permission === "default") {
+        await Notification.requestPermission();
+      }
+    }
+
+    async function showNotification(title, body) {
+      if (!("Notification" in window) || Notification.permission !== "granted") return;
+      const reg = await navigator.serviceWorker?.ready;
+      if (reg) {
+        reg.active?.postMessage({ type: "show-notification", title, body });
+      } else {
+        const n = new Notification(title, { body, tag: "chat-msg" });
+        n.onclick = () => { window.focus(); n.close(); };
+        setTimeout(() => n.close(), 4000);
+      }
+    }
+
+    function playSound() {
+      try {
+        const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.3);
+      } catch (e) {}
     }
 
     // ===== Рисуем сообщения =====
