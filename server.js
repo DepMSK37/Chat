@@ -9,7 +9,7 @@ const { WebSocketServer } = require("ws");
 const PASSWORD        = process.env.PASSWORD || null;
 const MAX_CLIENTS     = 15;
 const MAX_HISTORY     = 500;
-const TTL_6_HOURS     = 6 * 60 * 60 * 1000; // 6 часов в миллисекундах
+const TTL_6_HOURS     = 6 * 60 * 60 * 1000; // 6 часов
 const HISTORY_FILE    = path.join(__dirname, "history.json");
 const UPLOADS_DIR     = path.join(__dirname, "uploads");
 const SAVE_INTERVAL   = 10 * 1000; 
@@ -53,16 +53,14 @@ setInterval(() => {
   history.forEach(msg => {
     if (msg.imageUrl && !msg.imageExpired && (now - msg.imageTimestamp > TTL_6_HOURS)) {
       try {
-        const filename = path.basename(msg.imageUrl);
-        const filepath = path.join(UPLOADS_DIR, filename);
-        if (fs.existsSync(filepath)) fs.unlinkSync(filepath); // Физически удаляем файл
+        const filepath = path.join(UPLOADS_DIR, path.basename(msg.imageUrl));
+        if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
       } catch (e) { console.error("Ошибка удаления файла:", e.message); }
       
       msg.imageExpired = true;
       delete msg.imageUrl;
       needSave = true;
       
-      // Рассылаем сигнал об истечении срока годности
       broadcast({ type: "image-expired", id: msg.id });
     }
   });
@@ -121,19 +119,34 @@ wss.on("connection", (ws) => {
   }
 
   clients.set(ws, { name: "Аноним", auth: false });
-  if (!PASSWORD) clients.get(ws).auth = true; else send(ws, { type: "need-password" });
+  
+  // ПРОАКТИВНЫЙ ФИКС: Если пароля нет, сразу пускаем клиента
+  if (!PASSWORD) {
+    clients.get(ws).auth = true; 
+    send(ws, { type: "auth-ok" });
+  } else {
+    send(ws, { type: "need-password" });
+  }
 
   ws.on("message", (data) => {
     let parsed;
     try { parsed = JSON.parse(data.toString()); } catch { return; }
     const clientInfo = clients.get(ws);
-    if (!clientInfo || !clientInfo.auth && parsed.type !== "auth") {
-       if (parsed.type === "auth") {
-         if (!PASSWORD || parsed.password === PASSWORD) { clientInfo.auth = true; send(ws, { type: "auth-ok" }); } 
-         else { send(ws, { type: "error", code: "wrong-password", text: "Неверный пароль." }); ws.close(); }
-       }
-       return;
+    if (!clientInfo) return;
+
+    // ИСПРАВЛЕННЫЙ БЛОК АВТОРИЗАЦИИ
+    if (parsed.type === "auth") {
+      if (!PASSWORD || parsed.password === PASSWORD) {
+        clientInfo.auth = true;
+        send(ws, { type: "auth-ok" });
+      } else {
+        send(ws, { type: "error", code: "wrong-password", text: "Неверный пароль." });
+        ws.close();
+      }
+      return;
     }
+
+    if (!clientInfo.auth) return;
 
     if (parsed.type === "join") {
       const name = (parsed.name || "Аноним").slice(0, 20).trim();
@@ -156,7 +169,6 @@ wss.on("connection", (ws) => {
     if (parsed.type === "delete") {
       const idx = history.findIndex(m => m.id === parsed.id);
       if (idx !== -1 && history[idx].name === clientInfo.name) {
-        // Если удаляем сообщение с фото — физически стираем фото
         if (history[idx].imageUrl) {
           try { fs.unlinkSync(path.join(UPLOADS_DIR, path.basename(history[idx].imageUrl))); } catch(e){}
         }
@@ -179,7 +191,6 @@ wss.on("connection", (ws) => {
       let imageUrl = null;
       let imageTimestamp = null;
 
-      // Обработка загруженного изображения
       if (parsed.imageBase64 && typeof parsed.imageBase64 === "string") {
         const matches = parsed.imageBase64.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/);
         if (matches && matches.length === 3) {
@@ -192,7 +203,7 @@ wss.on("connection", (ws) => {
         }
       }
 
-      if (!text && !imageUrl) return; // Разрешаем отправку картинок без текста
+      if (!text && !imageUrl) return;
 
       const message = {
         id: parsed.id || Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
