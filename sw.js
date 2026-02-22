@@ -3,9 +3,14 @@
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
-// ЛОВИМ СИГНАЛ ОТ GOOGLE СЕРВЕРОВ
+// ЛОВИМ СИГНАЛ ОТ GOOGLE СЕРВЕРОВ (Даже если браузер закрыт)
 self.addEventListener("push", (event) => {
-  const data = event.data ? event.data.json() : { title: "Голубь", body: "Новое сообщение" };
+  let data = { title: "Голубь", body: "Новое сообщение" };
+  try {
+    data = event.data ? event.data.json() : data;
+  } catch (e) {
+    data = { title: "Голубь", body: event.data.text() || "Новое сообщение" };
+  }
   
   const options = {
     body: data.body,
@@ -13,12 +18,14 @@ self.addEventListener("push", (event) => {
     badge: "/icon.png",
     tag: "chat-msg",
     renotify: true,
+    vibrate: [200, 100, 200],
     data: { url: "/" }
   };
 
   event.waitUntil(self.registration.showNotification(data.title, options));
 });
 
+// Клик по уведомлению
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   event.waitUntil(
