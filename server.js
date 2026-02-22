@@ -2,21 +2,48 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const { WebSocketServer } = require("ws");
+const webpush = require("web-push"); // Подключаем библиотеку Web Push
 
 // =====================================================
 // НАСТРОЙКИ
 // =====================================================
 const PASSWORD        = process.env.PASSWORD || null;
+const VAPID_PUBLIC    = process.env.VAPID_PUBLIC_KEY; // Ваш публичный ключ
+const VAPID_PRIVATE   = process.env.VAPID_PRIVATE_KEY; // Ваш приватный ключ
 const MAX_CLIENTS     = 15;
 const MAX_HISTORY     = 500;
 const TTL_6_HOURS     = 6 * 60 * 60 * 1000; // 6 часов
 const HISTORY_FILE    = path.join(__dirname, "history.json");
+const SUBS_FILE       = path.join(__dirname, "subs.json"); // Файл для хранения подписок
 const UPLOADS_DIR     = path.join(__dirname, "uploads");
 const SAVE_INTERVAL   = 10 * 1000; 
+
+// Инициализация Web Push
+if (VAPID_PUBLIC && VAPID_PRIVATE) {
+  webpush.setVapidDetails("mailto:admin@rusteryerka.ru", VAPID_PUBLIC, VAPID_PRIVATE);
+}
 
 // Создаем папку для картинок, если её нет
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+
+// =====================================================
+// ПОДПИСКИ НА УВЕДОМЛЕНИЯ
+// =====================================================
+let subscriptions = {};
+try {
+  if (fs.existsSync(SUBS_FILE)) {
+    const raw = fs.readFileSync(SUBS_FILE, "utf-8");
+    subscriptions = JSON.parse(raw) || {};
+  }
+} catch (e) {
+  subscriptions = {};
+}
+
+function saveSubs() {
+  try { fs.writeFileSync(SUBS_FILE, JSON.stringify(subscriptions), "utf-8"); } 
+  catch (e) { console.warn("Не удалось сохранить подписки:", e.message); }
 }
 
 // =====================================================
@@ -90,7 +117,7 @@ const httpServer = http.createServer((req, res) => {
 });
 
 // =====================================================
-// WebSocket
+// WebSocket и Рассылка Push
 // =====================================================
 const wss = new WebSocketServer({ server: httpServer });
 const clients = new Map();
@@ -109,6 +136,29 @@ function broadcastOnline() {
 
 function send(ws, payload) { if (ws.readyState === 1) ws.send(JSON.stringify(payload)); }
 
+// Функция отправки фоновых уведомлений
+async function sendPushNotification(senderName, text) {
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
+
+  const payload = JSON.stringify({ title: senderName, body: text || "🖼️ Фотография" });
+  
+  // Собираем тех, кто сейчас сидит в чате (им пуши слать не нужно)
+  const onlineNames = new Set([...clients.values()].filter(c => c.auth).map(c => c.name));
+
+  for (const name in subscriptions) {
+    // Не отправляем уведомление самому себе и тем, кто онлайн
+    if (name === senderName || onlineNames.has(name)) continue;
+
+    webpush.sendNotification(subscriptions[name], payload).catch(err => {
+      // Если подписка протухла (пользователь удалил приложение), удаляем её
+      if (err.statusCode === 410) {
+        delete subscriptions[name];
+        saveSubs();
+      }
+    });
+  }
+}
+
 wss.on("connection", (ws) => {
   ws.isAlive = true;
   ws.on('pong', () => { ws.isAlive = true; });
@@ -120,7 +170,6 @@ wss.on("connection", (ws) => {
 
   clients.set(ws, { name: "Аноним", auth: false });
   
-  // ПРОАКТИВНЫЙ ФИКС: Если пароля нет, сразу пускаем клиента
   if (!PASSWORD) {
     clients.get(ws).auth = true; 
     send(ws, { type: "auth-ok" });
@@ -134,7 +183,6 @@ wss.on("connection", (ws) => {
     const clientInfo = clients.get(ws);
     if (!clientInfo) return;
 
-    // ИСПРАВЛЕННЫЙ БЛОК АВТОРИЗАЦИИ
     if (parsed.type === "auth") {
       if (!PASSWORD || parsed.password === PASSWORD) {
         clientInfo.auth = true;
@@ -148,10 +196,18 @@ wss.on("connection", (ws) => {
 
     if (!clientInfo.auth) return;
 
+    // Регистрация токена устройства для Push-уведомлений
+    if (parsed.type === "push-subscribe") {
+      subscriptions[clientInfo.name] = parsed.subscription;
+      saveSubs();
+      return;
+    }
+
     if (parsed.type === "join") {
       const name = (parsed.name || "Аноним").slice(0, 20).trim();
       clientInfo.name = name;
-      send(ws, { type: "history", messages: history });
+      // Передаем публичный ключ клиенту вместе с историей
+      send(ws, { type: "history", messages: history, vapidPublicKey: VAPID_PUBLIC });
       broadcast({ type: "system", text: `${name} вошёл в чат` });
       broadcastOnline(); return;
     }
@@ -222,6 +278,9 @@ wss.on("connection", (ws) => {
       history.push(message);
       if (history.length > MAX_HISTORY) history.shift();
       broadcast({ type: "message", message }, ws);
+      
+      // Запускаем рассылку уведомлений
+      sendPushNotification(clientInfo.name, text);
     }
   });
 
