@@ -277,6 +277,7 @@ wss.on("connection", (ws) => {
 
       history.push(message);
       if (history.length > MAX_HISTORY) history.shift();
+      saveHistory(); // Сохраняем сразу — не ждём интервала
       broadcast({ type: "message", message }, ws);
       
       // Запускаем рассылку уведомлений
