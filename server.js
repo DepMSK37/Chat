@@ -158,10 +158,33 @@ wss.on("connection", (ws) => {
       }
       return;
     }
+    // --- Обработка удаления ---
+    if (parsed.type === "delete") {
+      const idx = history.findIndex(m => m.id === parsed.id);
+      // Проверяем, что сообщение существует и принадлежит тому, кто удаляет
+      if (idx !== -1 && history[idx].name === clientInfo.name) {
+        history.splice(idx, 1);
+        saveHistory();
+        broadcast({ type: "delete", id: parsed.id });
+      }
+      return;
+    }
+
+    // --- Обработка редактирования ---
+    if (parsed.type === "edit") {
+      const msg = history.find(m => m.id === parsed.id);
+      if (msg && msg.name === clientInfo.name) {
+        msg.text = (parsed.text || "").slice(0, 10000).trim();
+        msg.edited = true;
+        saveHistory();
+        broadcast({ type: "edit", id: parsed.id, text: msg.text });
+      }
+      return;
+    }
 
     // --- Обработка нового сообщения ---
     if (parsed.type === "message") {
-      const text = (parsed.text || "").slice(0, 2000).trim();
+      const text = (parsed.text || "").slice(0, 10000).trim();
       if (!text) return;
 
       const message = {
