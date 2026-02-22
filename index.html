@@ -100,7 +100,6 @@
       background: #f0f0f0;
     }
 
-    /* Шапка: три колонки — название всегда по центру */
     #header {
       flex-shrink: 0;
       background: #0078ff;
@@ -279,7 +278,6 @@
 </head>
 <body>
 
-  <!-- 1. Экран ввода пароля -->
   <div class="modal-overlay solid hidden" id="password-screen">
     <div class="modal-box">
       <div class="icon">🔒</div>
@@ -291,7 +289,6 @@
     </div>
   </div>
 
-  <!-- 2. Экран ввода имени -->
   <div class="modal-overlay solid hidden" id="name-screen">
     <div class="modal-box">
       <div class="icon">🕊️</div>
@@ -302,7 +299,6 @@
     </div>
   </div>
 
-  <!-- 3. Смена имени -->
   <div class="modal-overlay hidden" id="rename-screen">
     <div class="modal-box">
       <div class="icon">✏️</div>
@@ -314,7 +310,6 @@
     </div>
   </div>
 
-  <!-- Чат -->
   <div id="chat-wrapper">
     <div id="header">
       <div class="header-left">
@@ -341,7 +336,6 @@
   </div>
 
   <script>
-    // ===== Элементы =====
     const passwordScreen = document.getElementById("password-screen");
     const passwordInput  = document.getElementById("password-input");
     const passwordBtn    = document.getElementById("password-btn");
@@ -361,95 +355,103 @@
     const form           = document.getElementById("form");
     const input          = document.getElementById("input");
 
-    // ===== Сохранённые данные =====
     let myName        = localStorage.getItem("chat_name") || "";
-    // Сохранённый пароль — если есть, отправляем автоматически без показа экрана
     let savedPassword = localStorage.getItem("chat_password") || "";
     let wsReady       = false;
+    let ws;
+    let reconnectTimer;
 
-    // ===== WebSocket =====
-    const protocol = location.protocol === "https:" ? "wss" : "ws";
-    const ws = new WebSocket(`${protocol}://${window.location.host}`);
+    // ===== СИСТЕМА АВТО-ПЕРЕПОДКЛЮЧЕНИЯ =====
+    function connect() {
+      const protocol = location.protocol === "https:" ? "wss" : "ws";
+      ws = new WebSocket(`${protocol}://${window.location.host}`);
 
-    ws.onopen  = () => { statusEl.textContent = "Online ✅"; wsReady = true; };
-    ws.onclose = () => { statusEl.textContent = "Нет соединения ❌"; wsReady = false; };
-    ws.onerror = () => { statusEl.textContent = "Ошибка ⚠️"; };
+      ws.onopen  = () => { 
+        statusEl.textContent = "Online ✅"; 
+        wsReady = true; 
+        clearTimeout(reconnectTimer); // Отменяем таймер при успехе
+      };
 
-    // ===== Входящие пакеты =====
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+      ws.onclose = () => { 
+        statusEl.textContent = "Переподключение... ⏳"; 
+        wsReady = false; 
+        // Пытаемся восстановить связь каждые 3 секунды без участия пользователя
+        clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(connect, 3000);
+      };
 
-      // Сервер просит пароль
-      if (data.type === "need-password") {
-        if (savedPassword) {
-          // Есть сохранённый пароль — отправляем автоматически, экран не показываем
-          ws.send(JSON.stringify({ type: "auth", password: savedPassword }));
-        } else {
-          // Пароля нет — показываем экран ввода
-          passwordScreen.classList.remove("hidden");
-          setTimeout(() => passwordInput.focus(), 100);
+      ws.onerror = () => { statusEl.textContent = "Ошибка ⚠️"; };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "need-password") {
+          if (savedPassword) {
+            ws.send(JSON.stringify({ type: "auth", password: savedPassword }));
+          } else {
+            passwordScreen.classList.remove("hidden");
+            setTimeout(() => passwordInput.focus(), 100);
+          }
+          return;
         }
-        return;
-      }
 
-      // Пароль принят
-      if (data.type === "auth-ok") {
-        // Сохраняем пароль чтобы не вводить снова
-        if (passwordInput.value) {
-          localStorage.setItem("chat_password", passwordInput.value.trim());
-          savedPassword = passwordInput.value.trim();
+        if (data.type === "auth-ok") {
+          if (passwordInput.value) {
+            localStorage.setItem("chat_password", passwordInput.value.trim());
+            savedPassword = passwordInput.value.trim();
+          }
+          passwordScreen.classList.add("hidden");
+          passwordError.textContent = "";
+          if (myName) { joinChat(); }
+          else {
+            nameScreen.classList.remove("hidden");
+            setTimeout(() => nameInput.focus(), 100);
+          }
+          return;
         }
-        passwordScreen.classList.add("hidden");
-        passwordError.textContent = "";
-        if (myName) { joinChat(); }
-        else {
-          nameScreen.classList.remove("hidden");
-          setTimeout(() => nameInput.focus(), 100);
+
+        if (data.type === "error") {
+          if (data.code === "wrong-password") {
+            localStorage.removeItem("chat_password");
+            savedPassword = "";
+            passwordError.textContent = "Неверный пароль, попробуйте снова.";
+            passwordInput.classList.add("error");
+            passwordInput.value = "";
+            passwordScreen.classList.remove("hidden");
+            setTimeout(() => { passwordInput.classList.remove("error"); passwordInput.focus(); }, 500);
+          }
+          if (data.code === "full") { showFullScreen(data.text); }
+          return;
         }
-        return;
-      }
 
-      // Ошибка
-      if (data.type === "error") {
-        if (data.code === "wrong-password") {
-          // Сохранённый пароль больше не подходит — удаляем его и просим ввести заново
-          localStorage.removeItem("chat_password");
-          savedPassword = "";
-          passwordError.textContent = "Неверный пароль, попробуйте снова.";
-          passwordInput.classList.add("error");
-          passwordInput.value = "";
-          passwordScreen.classList.remove("hidden");
-          setTimeout(() => { passwordInput.classList.remove("error"); passwordInput.focus(); }, 500);
+        if (data.type === "history") {
+          messagesEl.innerHTML = ""; // КРИТИЧНО: очищаем старую историю при реконнектах
+          data.messages.forEach((msg) => addMessage(msg, "theirs"));
+          return;
         }
-        if (data.code === "full") { showFullScreen(data.text); }
-        return;
-      }
 
-      if (data.type === "history") {
-        data.messages.forEach((msg) => addMessage(msg, "theirs"));
-        return;
-      }
+        if (data.type === "message") {
+          addMessage(data.message, "theirs");
+          if (document.hidden) { showNotification(data.message.name, data.message.text); playSound(); }
+          return;
+        }
 
-      if (data.type === "message") {
-        addMessage(data.message, "theirs");
-        if (document.hidden) { showNotification(data.message.name, data.message.text); playSound(); }
-        return;
-      }
+        if (data.type === "system") { addSystemMessage(data.text); return; }
 
-      if (data.type === "system") { addSystemMessage(data.text); return; }
+        if (data.type === "online") {
+          const n = data.count;
+          const word = n === 1 ? "участник" : n < 5 ? "участника" : "участников";
+          onlineEl.textContent = `${n} / 15 ${word}`;
+          return;
+        }
 
-      if (data.type === "online") {
-        const n = data.count;
-        // Правильное склонение без слова "онлайн"
-        const word = n === 1 ? "участник" : n < 5 ? "участника" : "участников";
-        onlineEl.textContent = `${n} / 15 ${word}`;
-        return;
-      }
+        if (data.type === "typing") { updateTyping(data.name, data.isTyping); }
+      };
+    }
+    
+    // Инициируем первое подключение
+    connect();
 
-      if (data.type === "typing") { updateTyping(data.name, data.isTyping); }
-    };
-
-    // ===== Чат заполнен =====
     function showFullScreen(text) {
       passwordScreen.classList.add("hidden");
       nameScreen.classList.add("hidden");
@@ -465,7 +467,6 @@
       document.body.appendChild(overlay);
     }
 
-    // ===== Ввод пароля вручную =====
     function submitPassword() {
       const pwd = passwordInput.value.trim();
       if (!pwd) return;
@@ -476,7 +477,6 @@
     passwordBtn.addEventListener("click", submitPassword);
     passwordInput.addEventListener("keydown", (e) => { if (e.key === "Enter") submitPassword(); });
 
-    // ===== Ввод имени =====
     function submitName() {
       const val = nameInput.value.trim();
       if (!val) return;
@@ -489,7 +489,6 @@
     nameBtn.addEventListener("click", submitName);
     nameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") submitName(); });
 
-    // ===== Смена имени =====
     settingsBtn.addEventListener("click", () => {
       renameInput.value = myName;
       renameScreen.classList.remove("hidden");
@@ -513,7 +512,6 @@
     renameBtn.addEventListener("click", submitRename);
     renameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") submitRename(); });
 
-    // ===== Вход в чат =====
     function joinChat() {
       if (wsReady) {
         ws.send(JSON.stringify({ type: "join", name: myName }));
@@ -521,7 +519,6 @@
       }
     }
 
-    // ===== Отправка сообщения =====
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       const text = input.value.trim();
@@ -534,7 +531,6 @@
       sendTyping(false);
     });
 
-    // ===== Печатает... =====
     let typingTimer = null;
     const typingUsers = new Set();
 
@@ -556,7 +552,6 @@
       else                             typingEl.textContent = "Несколько человек печатают...";
     }
 
-    // ===== Service Worker =====
     async function registerSW() {
       if (!("serviceWorker" in navigator)) return;
       try { await navigator.serviceWorker.register("/sw.js"); } catch (e) {}
@@ -597,7 +592,6 @@
       } catch (e) {}
     }
 
-    // ===== Рисуем сообщения =====
     function addMessage(msg, type) {
       const row = document.createElement("div");
       row.className = `msg-row ${type}`;
@@ -669,6 +663,5 @@
     window.visualViewport?.addEventListener("resize", scrollToBottom);
     window.visualViewport?.addEventListener("scroll", scrollToBottom);
   </script>
-
 </body>
 </html>
