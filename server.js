@@ -10,10 +10,10 @@ const PASSWORD        = process.env.PASSWORD || null;
 const MAX_CLIENTS     = 15;
 const MAX_HISTORY     = 500;
 const HISTORY_FILE    = path.join(__dirname, "history.json");
-const SAVE_INTERVAL   = 10 * 1000; // сохранять на диск каждые 10 секунд
+const SAVE_INTERVAL   = 10 * 1000; 
 
 // =====================================================
-// ИСТОРИЯ — загружаем с диска при старте
+// ИСТОРИЯ
 // =====================================================
 let history = [];
 
@@ -93,10 +93,9 @@ function send(ws, payload) {
 }
 
 wss.on("connection", (ws) => {
-  // --- АРХИТЕКТУРА HEARTBEAT (ЗАЩИТА ОТ CLOUDFLARE) ---
+  // --- HEARTBEAT ---
   ws.isAlive = true;
   ws.on('pong', () => { ws.isAlive = true; });
-  // ----------------------------------------------------
 
   if (clients.size >= MAX_CLIENTS) {
     send(ws, { type: "error", code: "full", text: `Чат заполнен. Максимум участников — ${MAX_CLIENTS}.` });
@@ -137,15 +136,9 @@ wss.on("connection", (ws) => {
       const name = (parsed.name || "Аноним").slice(0, 20).trim();
       clientInfo.name = name;
 
-      if (history.length > 0) {
-        send(ws, { type: "history", messages: history });
-      } else {
-        send(ws, { type: "history", messages: [] });
-      }
-
+      send(ws, { type: "history", messages: history });
       broadcast({ type: "system", text: `${name} вошёл в чат` });
       broadcastOnline();
-      console.log(`${name} вошёл. Онлайн: ${[...clients.values()].filter(c => c.auth).length}`);
       return;
     }
 
@@ -154,21 +147,35 @@ wss.on("connection", (ws) => {
       return;
     }
 
+    // --- Обработка прочтения ---
+    if (parsed.type === "mark-read") {
+      const msg = history.find(m => m.id === parsed.id);
+      // Если сообщение есть, ещё не прочитано и это не моё сообщение
+      if (msg && !msg.read && msg.name !== clientInfo.name) {
+        msg.read = true;
+        // Рассылаем всем сигнал обновить галочки
+        broadcast({ type: "msg-read", id: parsed.id });
+      }
+      return;
+    }
+
+    // --- Обработка нового сообщения ---
     if (parsed.type === "message") {
       const text = (parsed.text || "").slice(0, 2000).trim();
       if (!text) return;
 
       const message = {
+        id: parsed.id || Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
         name: clientInfo.name,
         text,
         time: new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
+        read: false
       };
 
       history.push(message);
       if (history.length > MAX_HISTORY) history.shift();
 
-      saveHistory();
-
+      // Рассылаем всем КРОМЕ отправителя (отправитель уже нарисовал у себя сам)
       broadcast({ type: "message", message }, ws);
     }
   });
@@ -183,20 +190,15 @@ wss.on("connection", (ws) => {
   });
 });
 
-// --- ГЛОБАЛЬНЫЙ КАРДИОСТИМУЛЯТОР (ПИНГАТОР) ---
 const pingInterval = setInterval(() => {
   wss.clients.forEach((ws) => {
-    if (ws.isAlive === false) return ws.terminate(); // Убиваем зависшие соединения
-    
+    if (ws.isAlive === false) return ws.terminate();
     ws.isAlive = false;
-    ws.ping(); // Браузер ответит pong автоматически
+    ws.ping();
   });
-}, 30000); // Каждые 30 секунд
+}, 30000);
 
-wss.on('close', () => {
-  clearInterval(pingInterval);
-});
-// ----------------------------------------------
+wss.on('close', () => clearInterval(pingInterval));
 
 process.on("SIGTERM", () => { saveHistory(); process.exit(0); });
 process.on("SIGINT",  () => { saveHistory(); process.exit(0); });
@@ -204,6 +206,4 @@ process.on("SIGINT",  () => { saveHistory(); process.exit(0); });
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
   console.log(`Сервер запущен на порту ${PORT}`);
-  if (PASSWORD) console.log(`Пароль установлен. Лимит: ${MAX_CLIENTS} участников`);
-  else          console.log("⚠️  Пароль не задан — вход свободный");
 });
