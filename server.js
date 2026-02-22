@@ -84,8 +84,8 @@ function broadcast(payload, exclude = null) {
 }
 
 function broadcastOnline() {
-  const count = [...clients.values()].filter(c => c.auth).length;
-  broadcast({ type: "online", count });
+  const activeUsers = [...clients.values()].filter(c => c.auth && c.name).map(c => c.name);
+  broadcast({ type: "online", count: activeUsers.length, users: activeUsers });
 }
 
 function send(ws, payload) {
@@ -150,18 +150,16 @@ wss.on("connection", (ws) => {
     // --- Обработка прочтения ---
     if (parsed.type === "mark-read") {
       const msg = history.find(m => m.id === parsed.id);
-      // Если сообщение есть, ещё не прочитано и это не моё сообщение
       if (msg && !msg.read && msg.name !== clientInfo.name) {
         msg.read = true;
-        // Рассылаем всем сигнал обновить галочки
         broadcast({ type: "msg-read", id: parsed.id });
       }
       return;
     }
+
     // --- Обработка удаления ---
     if (parsed.type === "delete") {
       const idx = history.findIndex(m => m.id === parsed.id);
-      // Проверяем, что сообщение существует и принадлежит тому, кто удаляет
       if (idx !== -1 && history[idx].name === clientInfo.name) {
         history.splice(idx, 1);
         saveHistory();
@@ -198,7 +196,6 @@ wss.on("connection", (ws) => {
       history.push(message);
       if (history.length > MAX_HISTORY) history.shift();
 
-      // Рассылаем всем КРОМЕ отправителя (отправитель уже нарисовал у себя сам)
       broadcast({ type: "message", message }, ws);
     }
   });
