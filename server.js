@@ -6,15 +6,47 @@ const { WebSocketServer } = require("ws");
 // =====================================================
 // НАСТРОЙКИ
 // =====================================================
-// Пароль берётся из переменной окружения Railway.
-// Локально можно запустить так: PASSWORD=секрет node server.js
-// Если переменная не задана — вход без пароля (только для локальной разработки)
-const PASSWORD     = process.env.PASSWORD || null;
-const MAX_CLIENTS  = 15;    // максимум участников одновременно
-const MAX_HISTORY  = 500;   // сколько сообщений хранить
+const PASSWORD        = process.env.PASSWORD || null;
+const MAX_CLIENTS     = 15;
+const MAX_HISTORY     = 500;
+const HISTORY_FILE    = path.join(__dirname, "history.json");
+const SAVE_INTERVAL   = 10 * 1000; // сохранять на диск каждые 10 секунд
 
 // =====================================================
+// ИСТОРИЯ — загружаем с диска при старте
+// =====================================================
+let history = [];
 
+function loadHistory() {
+  try {
+    if (fs.existsSync(HISTORY_FILE)) {
+      const raw = fs.readFileSync(HISTORY_FILE, "utf-8");
+      history = JSON.parse(raw) || [];
+      console.log(`История загружена: ${history.length} сообщений`);
+    }
+  } catch (e) {
+    console.warn("Не удалось загрузить историю:", e.message);
+    history = [];
+  }
+}
+
+function saveHistory() {
+  try {
+    fs.writeFileSync(HISTORY_FILE, JSON.stringify(history), "utf-8");
+  } catch (e) {
+    console.warn("Не удалось сохранить историю:", e.message);
+  }
+}
+
+// Загружаем историю при запуске сервера
+loadHistory();
+
+// Периодически сохраняем на диск
+setInterval(saveHistory, SAVE_INTERVAL);
+
+// =====================================================
+// HTTP-сервер
+// =====================================================
 const MIME = {
   ".html": "text/html",
   ".js":   "application/javascript",
@@ -23,6 +55,16 @@ const MIME = {
 };
 
 const httpServer = http.createServer((req, res) => {
+
+  // ── Keep-alive эндпоинт ──────────────────────────
+  // UptimeRobot будет стучаться сюда каждые 5 минут
+  // чтобы сервер не засыпал
+  if (req.url === "/ping") {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    return res.end("pong");
+  }
+
+  // ── Статические файлы ────────────────────────────
   const url = req.url === "/" ? "/index.html" : req.url;
   const filePath = path.join(__dirname, url);
   const ext = path.extname(filePath);
@@ -34,21 +76,15 @@ const httpServer = http.createServer((req, res) => {
   });
 });
 
+// =====================================================
+// WebSocket
+// =====================================================
 const wss = new WebSocketServer({ server: httpServer });
-
-// Map: ws → { name, auth }
-// auth: true = прошёл проверку пароля, false = ещё нет
 const clients = new Map();
-const history = [];
-
-// =====================================================
-// Утилиты
-// =====================================================
 
 function broadcast(payload, exclude = null) {
   const data = JSON.stringify(payload);
   for (const [client, info] of clients) {
-    // Рассылаем только авторизованным клиентам
     if (client !== exclude && client.readyState === 1 && info.auth) {
       client.send(data);
     }
@@ -56,7 +92,6 @@ function broadcast(payload, exclude = null) {
 }
 
 function broadcastOnline() {
-  // Считаем только авторизованных
   const count = [...clients.values()].filter(c => c.auth).length;
   broadcast({ type: "online", count });
 }
@@ -65,28 +100,19 @@ function send(ws, payload) {
   if (ws.readyState === 1) ws.send(JSON.stringify(payload));
 }
 
-// =====================================================
-// WebSocket
-// =====================================================
-
 wss.on("connection", (ws) => {
 
-  // Проверяем лимит ДО авторизации
-  // Считаем всех (включая ещё не авторизованных) чтобы не допустить обход через спам подключений
   if (clients.size >= MAX_CLIENTS) {
-    send(ws, { type: "error", code: "full", text: "Чат заполнен. Максимум участников — " + MAX_CLIENTS + "." });
+    send(ws, { type: "error", code: "full", text: `Чат заполнен. Максимум участников — ${MAX_CLIENTS}.` });
     ws.close();
     return;
   }
 
-  // Добавляем клиента как неавторизованного
   clients.set(ws, { name: "Аноним", auth: false });
 
-  // Если пароль не задан — сразу помечаем как авторизованного
   if (!PASSWORD) {
     clients.get(ws).auth = true;
   } else {
-    // Просим клиента ввести пароль
     send(ws, { type: "need-password" });
   }
 
@@ -103,27 +129,20 @@ wss.on("connection", (ws) => {
       if (!PASSWORD || parsed.password === PASSWORD) {
         clientInfo.auth = true;
         send(ws, { type: "auth-ok" });
-        console.log("Клиент авторизован");
       } else {
-        // Неверный пароль — даём 1 попытку и закрываем соединение
         send(ws, { type: "error", code: "wrong-password", text: "Неверный пароль." });
         ws.close();
       }
       return;
     }
 
-    // Все остальные пакеты — только для авторизованных
-    if (!clientInfo.auth) {
-      send(ws, { type: "error", code: "not-auth", text: "Не авторизован." });
-      return;
-    }
+    if (!clientInfo.auth) return;
 
-    // ── Вход в чат (имя) ────────────────────────────
+    // ── Вход ─────────────────────────────────────────
     if (parsed.type === "join") {
       const name = (parsed.name || "Аноним").slice(0, 20).trim();
       clientInfo.name = name;
 
-      // Отдаём историю только авторизованному пользователю
       if (history.length > 0) {
         send(ws, { type: "history", messages: history });
       }
@@ -134,7 +153,7 @@ wss.on("connection", (ws) => {
       return;
     }
 
-    // ── Индикатор печатает ───────────────────────────
+    // ── Печатает ─────────────────────────────────────
     if (parsed.type === "typing") {
       broadcast({ type: "typing", name: clientInfo.name, isTyping: parsed.isTyping }, ws);
       return;
@@ -154,6 +173,9 @@ wss.on("connection", (ws) => {
       history.push(message);
       if (history.length > MAX_HISTORY) history.shift();
 
+      // Сохраняем сразу при каждом новом сообщении
+      saveHistory();
+
       broadcast({ type: "message", message }, ws);
     }
   });
@@ -168,12 +190,13 @@ wss.on("connection", (ws) => {
   });
 });
 
+// Сохраняем историю при штатном завершении процесса
+process.on("SIGTERM", () => { saveHistory(); process.exit(0); });
+process.on("SIGINT",  () => { saveHistory(); process.exit(0); });
+
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
   console.log(`Сервер запущен на порту ${PORT}`);
-  if (PASSWORD) {
-    console.log(`Пароль установлен. Лимит участников: ${MAX_CLIENTS}`);
-  } else {
-    console.log("⚠️  Пароль не задан (переменная PASSWORD пуста). Вход свободный.");
-  }
+  if (PASSWORD) console.log(`Пароль установлен. Лимит: ${MAX_CLIENTS} участников`);
+  else          console.log("⚠️  Пароль не задан — вход свободный");
 });
