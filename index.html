@@ -358,6 +358,7 @@
     let myName        = localStorage.getItem("chat_name") || "";
     let savedPassword = localStorage.getItem("chat_password") || "";
     let wsReady       = false;
+    let stopReconnect = false; // true когда чат полный — не переподключаемся
     let ws;
     let reconnectTimer;
 
@@ -373,9 +374,9 @@
       };
 
       ws.onclose = () => { 
+        wsReady = false;
+        if (stopReconnect) return; // чат полный — не трогаем
         statusEl.textContent = "Переподключение... ⏳"; 
-        wsReady = false; 
-        // Пытаемся восстановить связь каждые 3 секунды без участия пользователя
         clearTimeout(reconnectTimer);
         reconnectTimer = setTimeout(connect, 3000);
       };
@@ -412,6 +413,9 @@
 
         if (data.type === "error") {
           if (data.code === "wrong-password") {
+            // Останавливаем авто-реконнект — ждём пока пользователь введёт пароль вручную
+            stopReconnect = true;
+            clearTimeout(reconnectTimer);
             localStorage.removeItem("chat_password");
             savedPassword = "";
             passwordError.textContent = "Неверный пароль, попробуйте снова.";
@@ -420,7 +424,11 @@
             passwordScreen.classList.remove("hidden");
             setTimeout(() => { passwordInput.classList.remove("error"); passwordInput.focus(); }, 500);
           }
-          if (data.code === "full") { showFullScreen(data.text); }
+          if (data.code === "full") { 
+            stopReconnect = true;
+            clearTimeout(reconnectTimer);
+            showFullScreen(data.text); 
+          }
           return;
         }
 
@@ -471,7 +479,21 @@
       const pwd = passwordInput.value.trim();
       if (!pwd) return;
       passwordError.textContent = "";
-      ws.send(JSON.stringify({ type: "auth", password: pwd }));
+
+      // Если соединение было остановлено (неверный пароль) — переподключаемся заново
+      if (stopReconnect || !ws || ws.readyState !== WebSocket.OPEN) {
+        stopReconnect = false;
+        // Ждём открытия нового соединения, потом шлём пароль
+        connect();
+        const tryAuth = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            clearInterval(tryAuth);
+            ws.send(JSON.stringify({ type: "auth", password: pwd }));
+          }
+        }, 100);
+      } else {
+        ws.send(JSON.stringify({ type: "auth", password: pwd }));
+      }
     }
 
     passwordBtn.addEventListener("click", submitPassword);
