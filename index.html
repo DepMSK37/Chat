@@ -144,6 +144,26 @@
     .modal-btn.secondary { background: var(--bg-input); color: var(--text-muted); }
     .modal-btn.secondary:hover { filter: brightness(.92); }
 
+    /* Кнопки темы */
+    .theme-btn {
+      flex: 1;
+      padding: 8px 4px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg-input);
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .theme-btn.active {
+      border-color: #0078ff;
+      background: rgba(0,120,255,.1);
+      color: #0078ff;
+      font-weight: 600;
+    }
+
     /* ===== Чат ===== */
     #chat-wrapper {
       position: fixed;
@@ -438,6 +458,54 @@
     #send-btn:active { transform: scale(0.93); }
     #send-btn svg { width: 20px; height: 20px; fill: #fff; }
 
+    /* ===== ПРИНУДИТЕЛЬНАЯ ТЁМНАЯ (data-theme="dark") ===== */
+    [data-theme="dark"] {
+      --bg:               #0e1117;
+      --bg-header:        #1a2233;
+      --bg-msg-mine:      #0078ff;
+      --bg-msg-their:     #1e2a3a;
+      --bg-form:          #1a2233;
+      --bg-input:         #0e1117;
+      --bg-modal:         #1a2233;
+      --text:             #e8eaf0;
+      --text-their:       #e8eaf0;
+      --text-muted:       #7a8899;
+      --text-system:      #6a7888;
+      --text-time-their:  rgba(232,234,240,.45);
+      --text-time-mine:   rgba(255,255,255,.65);
+      --border:           #243040;
+      --shadow:           0 1px 3px rgba(0,0,0,.35);
+      --date-bg:          rgba(255,255,255,.07);
+      --date-text:        #8a9ab0;
+      --code-bg:          rgba(255,255,255,.08);
+      --code-text:        #e06c75;
+      --overlay-bg:       rgba(0,0,0,.7);
+    }
+
+    /* ===== ПРИНУДИТЕЛЬНАЯ СВЕТЛАЯ (data-theme="light") ===== */
+    [data-theme="light"] {
+      --bg:               #f0f2f5;
+      --bg-header:        #0078ff;
+      --bg-msg-mine:      #0078ff;
+      --bg-msg-their:     #ffffff;
+      --bg-form:          #ffffff;
+      --bg-input:         #f0f2f5;
+      --bg-modal:         #ffffff;
+      --text:             #111111;
+      --text-their:       #222222;
+      --text-muted:       #888888;
+      --text-system:      #999999;
+      --text-time-their:  rgba(0,0,0,.45);
+      --text-time-mine:   rgba(255,255,255,.65);
+      --border:           #e0e0e0;
+      --shadow:           0 1px 2px rgba(0,0,0,.10);
+      --date-bg:          rgba(0,0,0,.08);
+      --date-text:        #555;
+      --code-bg:          rgba(0,0,0,.07);
+      --code-text:        #c0392b;
+      --overlay-bg:       rgba(0,0,0,.5);
+    }
+
     /* Десктоп */
     @media (min-width: 640px) {
       body { background: #c8d4e0; }
@@ -476,13 +544,22 @@
     </div>
   </div>
 
-  <!-- 3. Смена имени -->
+  <!-- 3. Настройки (смена имени + тема) -->
   <div class="modal-overlay hidden" id="rename-screen">
     <div class="modal-box">
-      <div class="icon">✏️</div>
-      <h2>Изменить имя</h2>
-      <p>Введите новое имя или никнейм</p>
+      <div class="icon">⚙️</div>
+      <h2>Настройки</h2>
+
+      <p style="text-align:left; margin-bottom:6px; font-size:13px; color:var(--text-muted);">Имя</p>
       <input id="rename-input" type="text" placeholder="Новое имя" maxlength="20" />
+
+      <p style="text-align:left; margin-bottom:8px; font-size:13px; color:var(--text-muted);">Тема</p>
+      <div style="display:flex; gap:8px; margin-bottom:16px;">
+        <button class="theme-btn" data-theme="auto"   id="theme-auto">🌗 Авто</button>
+        <button class="theme-btn" data-theme="light"  id="theme-light">☀️ Светлая</button>
+        <button class="theme-btn" data-theme="dark"   id="theme-dark">🌙 Тёмная</button>
+      </div>
+
       <button class="modal-btn" id="rename-btn">Сохранить</button>
       <button class="modal-btn secondary" id="rename-cancel">Отмена</button>
     </div>
@@ -522,7 +599,7 @@
         <input
           id="input"
           type="text"
-          placeholder="Сообщение... (*жирный* _курсив_ `код`)"
+          placeholder="Введите текст"
           autocomplete="off"
           enterkeyhint="send"
           maxlength="2000"
@@ -650,7 +727,33 @@
       return s;
     }
 
-    // ===== WebSocket — авто-переподключение =====
+    // ===== Тема =====
+    const themeKey = "chat_theme";
+    const htmlEl   = document.documentElement;
+
+    function applyTheme(theme) {
+      htmlEl.removeAttribute("data-theme");
+      if (theme === "light") htmlEl.setAttribute("data-theme", "light");
+      if (theme === "dark")  htmlEl.setAttribute("data-theme", "dark");
+      // обновляем кнопки
+      document.querySelectorAll(".theme-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.theme === theme);
+      });
+    }
+
+    function loadTheme() {
+      applyTheme(localStorage.getItem(themeKey) || "auto");
+    }
+
+    document.querySelectorAll(".theme-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const t = btn.dataset.theme;
+        localStorage.setItem(themeKey, t);
+        applyTheme(t);
+      });
+    });
+
+    loadTheme();
     function connect() {
       const protocol = location.protocol === "https:" ? "wss" : "ws";
       ws = new WebSocket(`${protocol}://${window.location.host}`);
@@ -810,6 +913,8 @@
     // ===== Смена имени =====
     settingsBtn.addEventListener("click", () => {
       renameInput.value = myName;
+      // Подсвечиваем текущую тему
+      applyTheme(localStorage.getItem(themeKey) || "auto");
       renameScreen.classList.remove("hidden");
       renameInput.focus();
       renameInput.select();
