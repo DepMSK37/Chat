@@ -2,75 +2,86 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const { WebSocketServer } = require("ws");
-const webpush = require("web-push");
 
 // =====================================================
-// НАСТРОЙКИ И КЛЮЧИ (Берутся из вашей группы golub-secrets)
+// НАСТРОЙКИ
 // =====================================================
 const PASSWORD        = process.env.PASSWORD || null;
-const VAPID_PUBLIC    = process.env.VAPID_PUBLIC_KEY;
-const VAPID_PRIVATE   = process.env.VAPID_PRIVATE_KEY;
-
 const MAX_CLIENTS     = 15;
 const MAX_HISTORY     = 500;
-const TTL_6_HOURS     = 6 * 60 * 60 * 1000;
+const TTL_6_HOURS     = 6 * 60 * 60 * 1000; // 6 часов
 const HISTORY_FILE    = path.join(__dirname, "history.json");
-const SUBS_FILE       = path.join(__dirname, "subs.json");
 const UPLOADS_DIR     = path.join(__dirname, "uploads");
+const SAVE_INTERVAL   = 10 * 1000; 
 
-// Инициализация Web Push
-if (VAPID_PUBLIC && VAPID_PRIVATE) {
-  webpush.setVapidDetails("mailto:admin@rusteryerka.ru", VAPID_PUBLIC, VAPID_PRIVATE);
+// Создаем папку для картинок, если её нет
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-
 // =====================================================
-// БАЗА ПОДПИСОК И ИСТОРИЯ
+// ИСТОРИЯ И ОЧИСТКА
 // =====================================================
-let subscriptions = {};
-try {
-  if (fs.existsSync(SUBS_FILE)) subscriptions = JSON.parse(fs.readFileSync(SUBS_FILE, "utf-8"));
-} catch (e) { subscriptions = {}; }
-
-function saveSubs() { fs.writeFileSync(SUBS_FILE, JSON.stringify(subscriptions), "utf-8"); }
-
 let history = [];
+
 function loadHistory() {
   try {
-    if (fs.existsSync(HISTORY_FILE)) history = JSON.parse(fs.readFileSync(HISTORY_FILE, "utf-8")) || [];
-  } catch (e) { history = []; }
+    if (fs.existsSync(HISTORY_FILE)) {
+      const raw = fs.readFileSync(HISTORY_FILE, "utf-8");
+      history = JSON.parse(raw) || [];
+      console.log(`История загружена: ${history.length} сообщений`);
+    }
+  } catch (e) {
+    console.warn("Не удалось загрузить историю:", e.message);
+    history = [];
+  }
 }
-function saveHistory() { fs.writeFileSync(HISTORY_FILE, JSON.stringify(history), "utf-8"); }
-loadHistory();
-setInterval(saveHistory, 10000);
 
-// Чистильщик картинок (6 часов)
+function saveHistory() {
+  try { fs.writeFileSync(HISTORY_FILE, JSON.stringify(history), "utf-8"); } 
+  catch (e) { console.warn("Не удалось сохранить историю:", e.message); }
+}
+
+loadHistory();
+setInterval(saveHistory, SAVE_INTERVAL);
+
+// ЧИСТИЛЬЩИК КАРТИНОК (Запускается каждые 15 минут)
 setInterval(() => {
   const now = Date.now();
   let needSave = false;
+
   history.forEach(msg => {
     if (msg.imageUrl && !msg.imageExpired && (now - msg.imageTimestamp > TTL_6_HOURS)) {
       try {
         const filepath = path.join(UPLOADS_DIR, path.basename(msg.imageUrl));
         if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
-      } catch (e) {}
-      msg.imageExpired = true; delete msg.imageUrl; needSave = true;
+      } catch (e) { console.error("Ошибка удаления файла:", e.message); }
+      
+      msg.imageExpired = true;
+      delete msg.imageUrl;
+      needSave = true;
+      
       broadcast({ type: "image-expired", id: msg.id });
     }
   });
+
   if (needSave) saveHistory();
 }, 15 * 60 * 1000);
 
 // =====================================================
-// HTTP СЕРВЕР
+// HTTP-сервер
 // =====================================================
-const MIME = { ".html": "text/html", ".js": "application/javascript", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp" };
+const MIME = { 
+  ".html": "text/html", ".js": "application/javascript", ".json": "application/json", 
+  ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp" 
+};
+
 const httpServer = http.createServer((req, res) => {
-  if (req.url === "/ping") return res.end("pong");
+  if (req.url === "/ping") { res.writeHead(200, { "Content-Type": "text/plain" }); return res.end("pong"); }
   const url = req.url === "/" ? "/index.html" : req.url;
   const filePath = path.join(__dirname, url);
   const ext = path.extname(filePath).toLowerCase();
+  
   fs.readFile(filePath, (err, data) => {
     if (err) { res.writeHead(404); return res.end("Not found"); }
     res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": ext.match(/jpg|jpeg|png|webp/) ? "public, max-age=86400" : "no-cache" });
@@ -79,7 +90,7 @@ const httpServer = http.createServer((req, res) => {
 });
 
 // =====================================================
-// WebSocket и Push-рассылка
+// WebSocket
 // =====================================================
 const wss = new WebSocketServer({ server: httpServer });
 const clients = new Map();
@@ -91,26 +102,31 @@ function broadcast(payload, exclude = null) {
   }
 }
 
-async function sendPushNotification(senderName, text) {
-  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
-  const payload = JSON.stringify({ title: senderName, body: text || "🖼️ Фотография" });
-  const onlineNames = new Set([...clients.values()].filter(c => c.auth).map(c => c.name));
-
-  for (const name in subscriptions) {
-    if (name === senderName || onlineNames.has(name)) continue;
-    webpush.sendNotification(subscriptions[name], payload).catch(err => {
-      if (err.statusCode === 410) { delete subscriptions[name]; saveSubs(); }
-    });
-  }
+function broadcastOnline() {
+  const activeUsers = [...clients.values()].filter(c => c.auth && c.name).map(c => c.name);
+  broadcast({ type: "online", count: activeUsers.length, users: activeUsers });
 }
+
+function send(ws, payload) { if (ws.readyState === 1) ws.send(JSON.stringify(payload)); }
 
 wss.on("connection", (ws) => {
   ws.isAlive = true;
   ws.on('pong', () => { ws.isAlive = true; });
-  clients.set(ws, { name: "Аноним", auth: false });
 
-  if (!PASSWORD) { clients.get(ws).auth = true; send(ws, { type: "auth-ok" }); } 
-  else send(ws, { type: "need-password" });
+  if (clients.size >= MAX_CLIENTS) {
+    send(ws, { type: "error", code: "full", text: `Чат заполнен. Максимум участников — ${MAX_CLIENTS}.` });
+    ws.close(); return;
+  }
+
+  clients.set(ws, { name: "Аноним", auth: false });
+  
+  // ПРОАКТИВНЫЙ ФИКС: Если пароля нет, сразу пускаем клиента
+  if (!PASSWORD) {
+    clients.get(ws).auth = true; 
+    send(ws, { type: "auth-ok" });
+  } else {
+    send(ws, { type: "need-password" });
+  }
 
   ws.on("message", (data) => {
     let parsed;
@@ -118,26 +134,29 @@ wss.on("connection", (ws) => {
     const clientInfo = clients.get(ws);
     if (!clientInfo) return;
 
+    // ИСПРАВЛЕННЫЙ БЛОК АВТОРИЗАЦИИ
     if (parsed.type === "auth") {
       if (!PASSWORD || parsed.password === PASSWORD) {
-        clientInfo.auth = true; send(ws, { type: "auth-ok" });
-      } else { send(ws, { type: "error", code: "wrong-password" }); ws.close(); }
+        clientInfo.auth = true;
+        send(ws, { type: "auth-ok" });
+      } else {
+        send(ws, { type: "error", code: "wrong-password", text: "Неверный пароль." });
+        ws.close();
+      }
       return;
     }
 
     if (!clientInfo.auth) return;
 
-    if (parsed.type === "push-subscribe") {
-      subscriptions[clientInfo.name] = parsed.subscription;
-      saveSubs(); return;
+    if (parsed.type === "join") {
+      const name = (parsed.name || "Аноним").slice(0, 20).trim();
+      clientInfo.name = name;
+      send(ws, { type: "history", messages: history });
+      broadcast({ type: "system", text: `${name} вошёл в чат` });
+      broadcastOnline(); return;
     }
 
-    if (parsed.type === "join") {
-      clientInfo.name = (parsed.name || "Аноним").slice(0, 20).trim();
-      send(ws, { type: "history", messages: history, vapidPublicKey: VAPID_PUBLIC });
-      broadcast({ type: "system", text: `${clientInfo.name} вошёл в чат` });
-      return;
-    }
+    if (parsed.type === "typing") { broadcast({ type: "typing", name: clientInfo.name, isTyping: parsed.isTyping }, ws); return; }
 
     if (parsed.type === "mark-read") {
       const msg = history.find(m => m.id === parsed.id);
@@ -150,47 +169,76 @@ wss.on("connection", (ws) => {
     if (parsed.type === "delete") {
       const idx = history.findIndex(m => m.id === parsed.id);
       if (idx !== -1 && history[idx].name === clientInfo.name) {
-        if (history[idx].imageUrl) try { fs.unlinkSync(path.join(UPLOADS_DIR, path.basename(history[idx].imageUrl))); } catch(e){}
+        if (history[idx].imageUrl) {
+          try { fs.unlinkSync(path.join(UPLOADS_DIR, path.basename(history[idx].imageUrl))); } catch(e){}
+        }
         history.splice(idx, 1); saveHistory(); broadcast({ type: "delete", id: parsed.id });
+      }
+      return;
+    }
+
+    if (parsed.type === "edit") {
+      const msg = history.find(m => m.id === parsed.id);
+      if (msg && msg.name === clientInfo.name) {
+        msg.text = (parsed.text || "").slice(0, 10000).trim();
+        msg.edited = true; saveHistory(); broadcast({ type: "edit", id: parsed.id, text: msg.text });
       }
       return;
     }
 
     if (parsed.type === "message") {
       const text = (parsed.text || "").slice(0, 10000).trim();
-      let imageUrl = null, imageTimestamp = null;
+      let imageUrl = null;
+      let imageTimestamp = null;
 
-      if (parsed.imageBase64) {
+      if (parsed.imageBase64 && typeof parsed.imageBase64 === "string") {
         const matches = parsed.imageBase64.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/);
-        if (matches) {
-          const filename = `${Date.now()}-${Math.random().toString(36).substring(2,8)}.jpg`;
-          fs.writeFileSync(path.join(UPLOADS_DIR, filename), Buffer.from(matches[2], "base64"));
-          imageUrl = `/uploads/${filename}`; imageTimestamp = Date.now();
+        if (matches && matches.length === 3) {
+          const ext = matches[1] === "jpeg" ? "jpg" : matches[1];
+          const imgData = Buffer.from(matches[2], "base64");
+          const filename = `${Date.now()}-${Math.random().toString(36).substring(2,8)}.${ext}`;
+          fs.writeFileSync(path.join(UPLOADS_DIR, filename), imgData);
+          imageUrl = `/uploads/${filename}`;
+          imageTimestamp = Date.now();
         }
       }
+
       if (!text && !imageUrl) return;
 
       const message = {
-        id: parsed.id || Date.now().toString(36),
+        id: parsed.id || Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
         name: clientInfo.name,
         text,
         time: new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
-        read: false, replyTo: parsed.replyTo || null, imageUrl, imageTimestamp
+        read: false,
+        replyTo: parsed.replyTo || null
       };
+
+      if (imageUrl) {
+        message.imageUrl = imageUrl;
+        message.imageTimestamp = imageTimestamp;
+      }
 
       history.push(message);
       if (history.length > MAX_HISTORY) history.shift();
       broadcast({ type: "message", message }, ws);
-      sendPushNotification(clientInfo.name, text);
     }
   });
 
   ws.on("close", () => {
     const info = clients.get(ws); clients.delete(ws);
     if (info?.auth && info.name) broadcast({ type: "system", text: `${info.name} покинул чат` });
+    broadcastOnline();
   });
 });
 
-function send(ws, payload) { if (ws.readyState === 1) ws.send(JSON.stringify(payload)); }
-const pingInterval = setInterval(() => { wss.clients.forEach((ws) => { if (ws.isAlive === false) return ws.terminate(); ws.isAlive = false; ws.ping(); }); }, 30000);
-httpServer.listen(process.env.PORT || 3000, () => console.log("Сервер запущен"));
+const pingInterval = setInterval(() => {
+  wss.clients.forEach((ws) => { if (ws.isAlive === false) return ws.terminate(); ws.isAlive = false; ws.ping(); });
+}, 30000);
+
+wss.on('close', () => clearInterval(pingInterval));
+process.on("SIGTERM", () => { saveHistory(); process.exit(0); });
+process.on("SIGINT",  () => { saveHistory(); process.exit(0); });
+
+const PORT = process.env.PORT || 3000;
+httpServer.listen(PORT, () => console.log(`Сервер запущен на порту ${PORT}`));
