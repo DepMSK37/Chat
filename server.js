@@ -139,6 +139,8 @@ wss.on("connection", (ws) => {
 
       if (history.length > 0) {
         send(ws, { type: "history", messages: history });
+      } else {
+        send(ws, { type: "history", messages: [] });
       }
 
       broadcast({ type: "system", text: `${name} вошёл в чат` });
