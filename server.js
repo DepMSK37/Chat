@@ -38,10 +38,7 @@ function saveHistory() {
   }
 }
 
-// Загружаем историю при запуске сервера
 loadHistory();
-
-// Периодически сохраняем на диск
 setInterval(saveHistory, SAVE_INTERVAL);
 
 // =====================================================
@@ -55,16 +52,11 @@ const MIME = {
 };
 
 const httpServer = http.createServer((req, res) => {
-
-  // ── Keep-alive эндпоинт ──────────────────────────
-  // UptimeRobot будет стучаться сюда каждые 5 минут
-  // чтобы сервер не засыпал
   if (req.url === "/ping") {
     res.writeHead(200, { "Content-Type": "text/plain" });
     return res.end("pong");
   }
 
-  // ── Статические файлы ────────────────────────────
   const url = req.url === "/" ? "/index.html" : req.url;
   const filePath = path.join(__dirname, url);
   const ext = path.extname(filePath);
@@ -101,6 +93,10 @@ function send(ws, payload) {
 }
 
 wss.on("connection", (ws) => {
+  // --- АРХИТЕКТУРА HEARTBEAT (ЗАЩИТА ОТ CLOUDFLARE) ---
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
+  // ----------------------------------------------------
 
   if (clients.size >= MAX_CLIENTS) {
     send(ws, { type: "error", code: "full", text: `Чат заполнен. Максимум участников — ${MAX_CLIENTS}.` });
@@ -124,7 +120,6 @@ wss.on("connection", (ws) => {
     const clientInfo = clients.get(ws);
     if (!clientInfo) return;
 
-    // ── Проверка пароля ──────────────────────────────
     if (parsed.type === "auth") {
       if (!PASSWORD || parsed.password === PASSWORD) {
         clientInfo.auth = true;
@@ -138,7 +133,6 @@ wss.on("connection", (ws) => {
 
     if (!clientInfo.auth) return;
 
-    // ── Вход ─────────────────────────────────────────
     if (parsed.type === "join") {
       const name = (parsed.name || "Аноним").slice(0, 20).trim();
       clientInfo.name = name;
@@ -153,13 +147,11 @@ wss.on("connection", (ws) => {
       return;
     }
 
-    // ── Печатает ─────────────────────────────────────
     if (parsed.type === "typing") {
       broadcast({ type: "typing", name: clientInfo.name, isTyping: parsed.isTyping }, ws);
       return;
     }
 
-    // ── Сообщение ────────────────────────────────────
     if (parsed.type === "message") {
       const text = (parsed.text || "").slice(0, 2000).trim();
       if (!text) return;
@@ -173,7 +165,6 @@ wss.on("connection", (ws) => {
       history.push(message);
       if (history.length > MAX_HISTORY) history.shift();
 
-      // Сохраняем сразу при каждом новом сообщении
       saveHistory();
 
       broadcast({ type: "message", message }, ws);
@@ -190,7 +181,21 @@ wss.on("connection", (ws) => {
   });
 });
 
-// Сохраняем историю при штатном завершении процесса
+// --- ГЛОБАЛЬНЫЙ КАРДИОСТИМУЛЯТОР (ПИНГАТОР) ---
+const pingInterval = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (ws.isAlive === false) return ws.terminate(); // Убиваем зависшие соединения
+    
+    ws.isAlive = false;
+    ws.ping(); // Браузер ответит pong автоматически
+  });
+}, 30000); // Каждые 30 секунд
+
+wss.on('close', () => {
+  clearInterval(pingInterval);
+});
+// ----------------------------------------------
+
 process.on("SIGTERM", () => { saveHistory(); process.exit(0); });
 process.on("SIGINT",  () => { saveHistory(); process.exit(0); });
 
