@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -78,8 +78,6 @@
     
     .date-separator { display: flex; align-items: center; justify-content: center; margin: 10px 0 6px; flex-shrink: 0; }
     .date-separator span { background: var(--date-bg); color: var(--date-text); font-size: 12px; padding: 3px 12px; border-radius: 20px; font-weight: 500; }
-
-    /* Линия "Новые сообщения" */
     .new-msgs-line { display: flex; align-items: center; margin: 12px 0 8px; text-align: center; flex-shrink: 0; }
     .new-msgs-line::before, .new-msgs-line::after { content: ""; flex: 1; border-bottom: 1px solid #e53935; opacity: 0.5; }
     .new-msgs-line span { color: #e53935; font-size: 12px; font-weight: bold; padding: 0 10px; }
@@ -94,7 +92,7 @@
     .msg-row.mine { flex-direction: row-reverse; }
     .avatar { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; text-transform: uppercase; }
     .msg-row.mine .avatar { display: none; }
-    .msg { max-width: 75%; padding: 7px 12px 5px; border-radius: 16px; font-size: 15px; line-height: 1.4; word-break: break-word; user-select: none; -webkit-user-select: none; position: relative; transition: background-color 0.5s; }
+    .msg { max-width: 78%; padding: 7px 12px 5px; border-radius: 16px; font-size: 15px; line-height: 1.4; word-break: break-word; user-select: none; -webkit-user-select: none; position: relative; transition: background-color 0.5s; }
     .msg .author { font-size: 12px; font-weight: 600; margin-bottom: 2px; display: block; }
     .msg .text { display: block; user-select: text; -webkit-user-select: text; }
     .msg .time { font-size: 11px; float: right; margin-left: 8px; margin-top: 2px; }
@@ -105,15 +103,23 @@
     .msg-row.theirs .msg { background: var(--bg-msg-their); color: var(--text-their); border-bottom-left-radius: 4px; box-shadow: var(--shadow); }
     .msg-row.theirs .msg .time { color: var(--text-time-their); }
     
-    /* Цитаты внутри сообщения */
+    /* Изображения */
+    .msg-img-wrap { margin: 4px 0 6px; overflow: hidden; border-radius: 8px; background: rgba(0,0,0,0.05); }
+    .msg-image { width: 100%; max-height: 250px; object-fit: cover; display: block; cursor: zoom-in; }
+    .expired-image { display: flex; align-items: center; justify-content: center; padding: 16px; font-size: 13px; font-weight: 500; color: var(--text-muted); background: var(--bg-input); border-radius: 8px; border: 1px dashed var(--border); margin: 4px 0 6px; font-style: italic; }
+    
+    /* Вьювер изображений */
+    #image-viewer { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.2s; }
+    #image-viewer.active { opacity: 1; pointer-events: auto; }
+    #image-viewer img { max-width: 95%; max-height: 95%; object-fit: contain; border-radius: 8px; }
+    #viewer-close { position: absolute; top: 16px; right: 20px; color: #fff; font-size: 32px; font-weight: bold; cursor: pointer; }
+
     .msg-quote { background: var(--reply-bg); border-left: 3px solid var(--reply-border); padding: 4px 8px; border-radius: 4px; margin-bottom: 6px; cursor: pointer; font-size: 13px; transition: opacity 0.2s; }
-    .msg-quote:active { opacity: 0.6; }
     .msg-row.mine .msg-quote { background: var(--reply-bg-mine); border-left-color: #fff; }
     .msg-quote .q-name { font-weight: bold; font-size: 12px; margin-bottom: 2px; color: var(--reply-border); }
     .msg-row.mine .msg-quote .q-name { color: #fff; }
     .msg-quote .q-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.85; }
 
-    /* Анимация подсветки при переходе к цитате */
     .highlight-msg .msg { animation: highlightAnim 1.5s ease-out; }
     @keyframes highlightAnim { 0% { filter: brightness(0.7) sepia(1) hue-rotate(180deg) saturate(3); } 100% { filter: none; } }
 
@@ -140,8 +146,6 @@
     #typing-indicator { flex-shrink: 0; min-height: 20px; padding: 0 16px 4px; font-size: 12px; color: var(--text-muted); font-style: italic; }
     
     #form { flex-shrink: 0; display: flex; flex-direction: column; background: var(--bg-form); border-top: 1px solid var(--border); position: relative; }
-    
-    /* Панель ответа и редактирования */
     .top-bar { display: none; background: var(--bg-input); padding: 8px 12px; border-bottom: 1px solid var(--border); align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-muted); }
     .top-bar.active { display: flex; }
     .top-bar-content { overflow: hidden; display: flex; flex-direction: column; }
@@ -150,6 +154,9 @@
     .cancel-btn { cursor: pointer; color: #e53935; font-weight: bold; font-size: 20px; padding: 0 10px; }
 
     #form-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+    #attach-btn { flex-shrink: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px; color: var(--text-muted); transition: 0.2s; }
+    #attach-btn:hover { color: #0078ff; }
+    #file-input { display: none; }
     #input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 24px; font-size: 16px; outline: none; background: var(--bg-input); color: var(--text); }
     #send-btn { flex-shrink: 0; width: 44px; height: 44px; background: #0078ff; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     #send-btn svg { width: 20px; height: 20px; fill: #fff; }
@@ -172,20 +179,11 @@
 </head>
 <body>
 
+  <div id="image-viewer"><span id="viewer-close">×</span><img id="viewer-img" src="" alt=""></div>
+
   <div class="modal-overlay solid hidden" id="password-screen"><div class="modal-box"><div class="icon">🔒</div><h2>Вход в Голубь</h2><input id="password-input" type="password" placeholder="Пароль" /><div class="error-text" id="password-error"></div><button class="modal-btn" id="password-btn">Войти</button></div></div>
   <div class="modal-overlay solid hidden" id="name-screen"><div class="modal-box"><div class="icon">🕊️</div><h2>Добро пожаловать!</h2><input id="name-input" type="text" placeholder="Ваше имя" maxlength="20" /><button class="modal-btn" id="name-btn">Войти в чат</button></div></div>
-  
-  <div class="modal-overlay hidden" id="rename-screen">
-    <div class="modal-box"><div class="icon">⚙️</div><h2>Настройки</h2><input id="rename-input" type="text" placeholder="Новое имя" maxlength="20" />
-      <div style="display:flex; gap:8px; margin-bottom:16px; margin-top:10px;">
-        <button class="theme-btn" data-theme="auto" id="theme-auto">🌗 Авто</button>
-        <button class="theme-btn" data-theme="light" id="theme-light">☀️ Светлая</button>
-        <button class="theme-btn" data-theme="dark" id="theme-dark">🌙 Тёмная</button>
-      </div>
-      <button class="modal-btn" id="rename-btn">Сохранить</button><button class="modal-btn secondary" id="rename-cancel">Отмена</button>
-    </div>
-  </div>
-
+  <div class="modal-overlay hidden" id="rename-screen"><div class="modal-box"><div class="icon">⚙️</div><h2>Настройки</h2><input id="rename-input" type="text" placeholder="Новое имя" maxlength="20" /><div style="display:flex; gap:8px; margin-bottom:16px; margin-top:10px;"><button class="theme-btn" data-theme="auto" id="theme-auto">🌗 Авто</button><button class="theme-btn" data-theme="light" id="theme-light">☀️ Светлая</button><button class="theme-btn" data-theme="dark" id="theme-dark">🌙 Тёмная</button></div><button class="modal-btn" id="rename-btn">Сохранить</button><button class="modal-btn secondary" id="rename-cancel">Отмена</button></div></div>
   <div class="modal-overlay hidden" id="users-screen"><div class="modal-box"><div class="icon">👥</div><h2>Участники онлайн</h2><div id="users-list"></div><button class="modal-btn secondary" id="users-close">Закрыть</button></div></div>
 
   <div id="chat-wrapper">
@@ -211,6 +209,10 @@
       </div>
 
       <div id="form-row">
+        <label id="attach-btn" title="Прикрепить картинку">
+          📎
+          <input type="file" id="file-input" accept="image/*" />
+        </label>
         <input id="input" type="text" placeholder="Введите текст" autocomplete="off" enterkeyhint="send" maxlength="10000" />
         <button type="button" id="send-btn"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
       </div>
@@ -232,18 +234,54 @@
     const settingsBtn = document.getElementById("settings-btn"), messagesEl = document.getElementById("messages"), historyLoader = document.getElementById("history-loader"), statusEl = document.getElementById("status"), onlineEl = document.getElementById("online-count"), typingEl = document.getElementById("typing-indicator");
     const input = document.getElementById("input"), sendBtn = document.getElementById("send-btn"), scrollDownBtn = document.getElementById("scroll-down"), unreadBadge = document.getElementById("unread-badge");
     const actionBar = document.getElementById("action-bar"), actionTitle = document.getElementById("action-title"), actionText = document.getElementById("action-text"), cancelActionBtn = document.getElementById("cancel-action");
+    const fileInput = document.getElementById("file-input");
+
+    const imageViewer = document.getElementById("image-viewer"), viewerImg = document.getElementById("viewer-img"), viewerClose = document.getElementById("viewer-close");
+    viewerClose.onclick = () => imageViewer.classList.remove("active");
+    window.openFullscreen = (src) => { viewerImg.src = src; imageViewer.classList.add("active"); };
 
     let myName = localStorage.getItem("chat_name") || "", savedPassword = localStorage.getItem("chat_password") || "";
     let wsReady = false, stopReconnect = false, ws, reconnectTimer;
-    let unreadCount = 0, isAtBottom = true;
-    let currentUsersList = [];
+    let unreadCount = 0, isAtBottom = true, currentUsersList = [];
     
-    // Переменные состояний ответа/редактирования
     let replyingToMsg = null; 
     let editingMsgId = null;
     let currentLastMsgId = null;
+    let attachedImageBase64 = null; // Для хранения сжатой картинки
 
-    // ===== КОНТЕКСТНОЕ МЕНЮ И ДЕЙСТВИЯ =====
+    // СЖАТИЕ КАРТИНОК НА КЛИЕНТЕ
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let w = img.width, h = img.height;
+          const max = 1200; // Жмем до 1200px по большей стороне
+          if (w > max || h > max) { if (w > h) { h = Math.round(h * max / w); w = max; } else { w = Math.round(w * max / h); h = max; } }
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+          attachedImageBase64 = canvas.toDataURL("image/jpeg", 0.7); // 70% качества
+          activateAttachmentUI();
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+      fileInput.value = ""; // Сбрасываем инпут
+    });
+
+    function activateAttachmentUI() {
+      editingMsgId = null; replyingToMsg = null;
+      actionTitle.textContent = "Вложение";
+      actionTitle.style.color = "#43a047";
+      actionText.textContent = "🖼️ Фотография готова к отправке";
+      actionBar.classList.add("active");
+      input.focus();
+    }
+
     const ctxMenu = document.getElementById("context-menu");
     let ctxTargetId = null, ctxTargetText = "", ctxTargetName = "", longPressTimer;
 
@@ -257,57 +295,41 @@
       
       ctxMenu.style.left = `${Math.min(clientX, window.innerWidth - 150)}px`;
       ctxMenu.style.top = `${Math.min(clientY, window.innerHeight - 200)}px`;
-      document.getElementById("ctx-edit").style.display = isMine ? "block" : "none";
+      document.getElementById("ctx-edit").style.display = isMine && text ? "block" : "none";
       document.getElementById("ctx-delete").style.display = isMine ? "block" : "none";
       ctxMenu.classList.remove("hidden");
     }
 
     document.addEventListener("click", () => ctxMenu.classList.add("hidden"));
-    
     document.getElementById("ctx-copy").onclick = () => navigator.clipboard.writeText(ctxTargetText);
     document.getElementById("ctx-delete").onclick = () => { if(wsReady && ctxTargetId) ws.send(JSON.stringify({ type: "delete", id: ctxTargetId })); };
     
-    // Включение режима ответа
     function activateReply(id, name, text) {
-      editingMsgId = null; // Сбрасываем редактирование
-      replyingToMsg = { id, name, text: text.replace(/<[^>]*>?/gm, '').slice(0, 50) + "..." };
-      actionTitle.textContent = `Ответ: ${name}`;
-      actionTitle.style.color = "#0078ff";
+      editingMsgId = null; attachedImageBase64 = null;
+      replyingToMsg = { id, name, text: text ? text.replace(/<[^>]*>?/gm, '').slice(0, 50) + "..." : "🖼️ Фотография" };
+      actionTitle.textContent = `Ответ: ${name}`; actionTitle.style.color = "#0078ff";
       actionText.textContent = replyingToMsg.text;
-      actionBar.classList.add("active");
-      input.focus();
+      actionBar.classList.add("active"); input.focus();
     }
     document.getElementById("ctx-reply").onclick = () => activateReply(ctxTargetId, ctxTargetName, ctxTargetText);
 
-    // Включение режима редактирования
     document.getElementById("ctx-edit").onclick = () => {
-      replyingToMsg = null; // Сбрасываем ответ
-      editingMsgId = ctxTargetId; 
-      actionTitle.textContent = "Редактирование";
-      actionTitle.style.color = "#e53935";
+      replyingToMsg = null; attachedImageBase64 = null; editingMsgId = ctxTargetId; 
+      actionTitle.textContent = "Редактирование"; actionTitle.style.color = "#e53935";
       actionText.textContent = ctxTargetText.slice(0, 50) + "...";
-      input.value = ctxTargetText;
-      actionBar.classList.add("active"); 
-      input.focus();
+      input.value = ctxTargetText; actionBar.classList.add("active"); input.focus();
     };
 
-    // Отмена любого действия
     cancelActionBtn.onclick = () => {
-      replyingToMsg = null; editingMsgId = null;
+      replyingToMsg = null; editingMsgId = null; attachedImageBase64 = null;
       input.value = ""; actionBar.classList.remove("active");
     };
 
-    // Скролл к оригинальному сообщению при клике на цитату
     window.scrollToMsg = function(id) {
       const target = document.querySelector(`.msg-row[data-id="${id}"]`);
-      if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "center" });
-        target.classList.add("highlight-msg");
-        setTimeout(() => target.classList.remove("highlight-msg"), 1500);
-      }
+      if (target) { target.scrollIntoView({ behavior: "smooth", block: "center" }); target.classList.add("highlight-msg"); setTimeout(() => target.classList.remove("highlight-msg"), 1500); }
     };
 
-    // ===== НАБЛЮДАТЕЛЬ ПРОЧТЕНИЯ =====
     const readObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -318,11 +340,7 @@
     }, { threshold: 0.5 });
 
     function generateId() { return Date.now().toString(36) + Math.random().toString(36).substring(2, 6); }
-
-    // Логика авто-обновления последнего прочитанного ID (для красной линии)
-    function checkUpdateLastRead() {
-      if (isAtBottom && currentLastMsgId) localStorage.setItem("last_read_id", currentLastMsgId);
-    }
+    function checkUpdateLastRead() { if (isAtBottom && currentLastMsgId) localStorage.setItem("last_read_id", currentLastMsgId); }
 
     messagesEl.addEventListener("scroll", () => {
       const dist = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight;
@@ -350,6 +368,7 @@
     }
 
     function formatText(raw) {
+      if (!raw) return "";
       let s = raw.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       s = s.replace(/(https?:\/\/[^\s<>"']+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
       s = s.replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*([^*\n]+)\*/g, "<b>$1</b>").replace(/_([^_\n]+)_/g, "<i>$1</i>");
@@ -357,14 +376,8 @@
       return s;
     }
 
-    // Темы
     const themeKey = "chat_theme", htmlEl = document.documentElement;
-    function applyTheme(theme) {
-      htmlEl.removeAttribute("data-theme");
-      if (theme === "light") htmlEl.setAttribute("data-theme", "light");
-      if (theme === "dark") htmlEl.setAttribute("data-theme", "dark");
-      document.querySelectorAll(".theme-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.theme === theme));
-    }
+    function applyTheme(theme) { htmlEl.removeAttribute("data-theme"); if (theme === "light") htmlEl.setAttribute("data-theme", "light"); if (theme === "dark") htmlEl.setAttribute("data-theme", "dark"); document.querySelectorAll(".theme-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.theme === theme)); }
     document.querySelectorAll(".theme-btn").forEach(btn => btn.addEventListener("click", () => { applyTheme(btn.dataset.theme); localStorage.setItem(themeKey, btn.dataset.theme); }));
     applyTheme(localStorage.getItem(themeKey) || "auto");
 
@@ -393,12 +406,10 @@
           return;
         }
 
-        // РЕНДЕР ИСТОРИИ И КРАСНОЙ ЛИНИИ
         if (data.type === "history") {
           historyLoader.classList.add("hidden");
           Array.from(messagesEl.children).forEach(el => { if (el.id !== "history-loader") el.remove(); });
           lastDateLabel = null;
-          
           const storedLastId = localStorage.getItem("last_read_id");
           let dividerInserted = false, dividerNode = null;
 
@@ -406,45 +417,38 @@
             maybeInsertDateSeparator("История");
             data.messages.forEach(msg => {
               addMessage(msg, msg.name === myName ? "mine" : "theirs", true);
-              // Если нашли последнее прочитанное сообщение, вставляем разделитель ПОСЛЕ него
               if (storedLastId && msg.id === storedLastId && !dividerInserted && msg.id !== data.messages[data.messages.length-1].id) {
-                dividerNode = document.createElement("div"); dividerNode.className = "new-msgs-line";
-                dividerNode.innerHTML = "<span>Новые сообщения</span>";
-                messagesEl.appendChild(dividerNode);
-                dividerInserted = true;
+                dividerNode = document.createElement("div"); dividerNode.className = "new-msgs-line"; dividerNode.innerHTML = "<span>Новые сообщения</span>";
+                messagesEl.appendChild(dividerNode); dividerInserted = true;
               }
             });
           }
-          
-          if (dividerNode) { dividerNode.scrollIntoView({ behavior: "auto", block: "center" }); isAtBottom = false; }
-          else scrollToBottom(false);
+          if (dividerNode) { dividerNode.scrollIntoView({ behavior: "auto", block: "center" }); isAtBottom = false; } else scrollToBottom(false);
           return;
         }
 
-        if (data.type === "message") {
-          maybeInsertDateSeparator(getDateLabel());
-          addMessage(data.message, "theirs", false);
-          if (document.hidden) { showNotification(data.message.name, data.message.text); playSound(); }
-          return;
-        }
-        
-        if (data.type === "msg-read") {
-          const row = document.querySelector(`.msg-row[data-id="${data.id}"]`);
-          if (row) { const ticks = row.querySelector('.ticks'); if (ticks) ticks.textContent = " ✓✓"; }
-          return;
-        }
-
+        if (data.type === "message") { maybeInsertDateSeparator(getDateLabel()); addMessage(data.message, "theirs", false); if (document.hidden) { showNotification(data.message.name, data.message.text || "🖼️ Фотография"); playSound(); } return; }
+        if (data.type === "msg-read") { const row = document.querySelector(`.msg-row[data-id="${data.id}"]`); if (row) { const ticks = row.querySelector('.ticks'); if (ticks) ticks.textContent = " ✓✓"; } return; }
         if (data.type === "delete") { const row = document.querySelector(`.msg-row[data-id="${data.id}"]`); if (row) row.remove(); return; }
+        
         if (data.type === "edit") {
           const row = document.querySelector(`.msg-row[data-id="${data.id}"]`);
           if (row) row.querySelector(".text").innerHTML = formatText(data.text) + '<span class="edited">(изменено)</span>';
           return;
         }
-        if (data.type === "system") { addSystemMessage(data.text); return; }
-        if (data.type === "online") { 
-          onlineEl.textContent = `${data.count} / 15 ${data.count === 1 ? "участник" : data.count < 5 ? "участника" : "участников"}`; 
-          currentUsersList = data.users || []; return; 
+
+        // ОБРАБОТКА ИСТЕЧЕНИЯ СРОКА КАРТИНКИ
+        if (data.type === "image-expired") {
+          const row = document.querySelector(`.msg-row[data-id="${data.id}"]`);
+          if (row) {
+            const imgWrap = row.querySelector('.msg-img-wrap');
+            if (imgWrap) imgWrap.outerHTML = `<div class="expired-image">🖼️ Срок хранения вышел</div>`;
+          }
+          return;
         }
+
+        if (data.type === "system") { addSystemMessage(data.text); return; }
+        if (data.type === "online") { onlineEl.textContent = `${data.count} / 15 ${data.count === 1 ? "участник" : data.count < 5 ? "участника" : "участников"}`; currentUsersList = data.users || []; return; }
         if (data.type === "typing") updateTyping(data.name, data.isTyping);
       };
     }
@@ -452,7 +456,6 @@
 
     function submitPassword() { const pwd = passwordInput.value.trim(); if (!pwd) return; if (!ws || ws.readyState !== WebSocket.OPEN) { connect(); setTimeout(() => ws.send(JSON.stringify({ type: "auth", password: pwd })), 500); } else ws.send(JSON.stringify({ type: "auth", password: pwd })); }
     passwordBtn.addEventListener("click", submitPassword); passwordInput.addEventListener("keydown", e => { if (e.key === "Enter") submitPassword(); });
-
     function submitName() { const val = nameInput.value.trim(); if (!val) return; myName = val; localStorage.setItem("chat_name", myName); nameScreen.classList.add("hidden"); joinChat(); }
     nameBtn.addEventListener("click", submitName); nameInput.addEventListener("keydown", e => { if (e.key === "Enter") submitName(); });
 
@@ -461,8 +464,7 @@
     renameBtn.addEventListener("click", () => { const val = renameInput.value.trim(); if (!val) return; localStorage.setItem("chat_name", val); myName = val; renameScreen.classList.add("hidden"); if(wsReady) ws.send(JSON.stringify({type:"join", name: myName})); });
 
     onlineEl.addEventListener("click", () => {
-      if (currentUsersList.length === 0) return;
-      usersListEl.innerHTML = "";
+      if (currentUsersList.length === 0) return; usersListEl.innerHTML = "";
       currentUsersList.forEach(name => {
         const div = document.createElement("div"); div.className = "user-item";
         const av = document.createElement("div"); av.className = "avatar"; av.style.background = nameToColor(name); av.textContent = name[0].toUpperCase();
@@ -478,10 +480,10 @@
 
     function sendMessage() {
       const text = input.value.trim();
-      if (!text || !wsReady) return;
+      if (!text && !attachedImageBase64) return; // Можно отправить или текст, или картинку, или всё вместе
+      if (!wsReady) return;
       const time = new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
       
-      // Редактирование
       if (editingMsgId) {
         ws.send(JSON.stringify({ type: "edit", id: editingMsgId, text }));
         const row = document.querySelector(`.msg-row[data-id="${editingMsgId}"]`);
@@ -492,18 +494,21 @@
       maybeInsertDateSeparator(getDateLabel());
       const msgId = generateId();
       
-      // Отправка (с прикреплением цитаты, если есть)
       const payload = { type: "message", text, id: msgId };
       if (replyingToMsg) payload.replyTo = replyingToMsg;
+      if (attachedImageBase64) payload.imageBase64 = attachedImageBase64;
+      
       ws.send(JSON.stringify(payload));
       
-      addMessage({ id: msgId, name: myName, text, time, read: false, replyTo: replyingToMsg }, "mine", false);
+      // Локальная отрисовка
+      const localMsg = { id: msgId, name: myName, text, time, read: false, replyTo: replyingToMsg };
+      if (attachedImageBase64) localMsg.imageUrl = attachedImageBase64; // Временно показываем локальный base64
+      addMessage(localMsg, "mine", false);
       
       input.value = ""; cancelActionBtn.click(); input.focus(); sendTyping(false);
     }
     sendBtn.addEventListener("click", sendMessage); input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
 
-    // Упоминания
     const mentionsPopup = document.getElementById("mentions-popup");
     input.addEventListener("input", (e) => {
       sendTyping(true); clearTimeout(typingTimer); typingTimer = setTimeout(() => sendTyping(false), 2000);
@@ -533,8 +538,7 @@
     function updateTyping(name, isTyping) { if (isTyping) typingUsers.add(name); else typingUsers.delete(name); typingEl.textContent = typingUsers.size === 0 ? "" : typingUsers.size === 1 ? `${[...typingUsers][0]} печатает...` : "Несколько человек печатают..."; }
 
     function addMessage(msg, type, fromHistory) {
-      currentLastMsgId = msg.id; // Трекинг для красной линии
-      
+      currentLastMsgId = msg.id; 
       const row = document.createElement("div"); row.className = `msg-row ${type}`;
       if (msg.id) row.dataset.id = msg.id; 
       if (fromHistory) row.style.animation = "none";
@@ -546,12 +550,20 @@
       const bubble = document.createElement("div"); bubble.className = "msg";
       if (type === "theirs") { const author = document.createElement("span"); author.className = "author"; author.style.color = nameToColor(msg.name); author.textContent = msg.name; bubble.appendChild(author); }
 
-      // Отрисовка цитаты (если есть)
       if (msg.replyTo) {
         const qBlock = document.createElement("div"); qBlock.className = "msg-quote";
         qBlock.innerHTML = `<div class="q-name">${msg.replyTo.name}</div><div class="q-text">${msg.replyTo.text}</div>`;
         qBlock.onclick = () => window.scrollToMsg(msg.replyTo.id);
         bubble.appendChild(qBlock);
+      }
+
+      // Отрисовка картинки или заглушки "Истекло"
+      if (msg.imageExpired) {
+        bubble.innerHTML += `<div class="expired-image">🖼️ Срок хранения вышел</div>`;
+      } else if (msg.imageUrl) {
+        const imgWrap = document.createElement("div"); imgWrap.className = "msg-img-wrap";
+        imgWrap.innerHTML = `<img src="${msg.imageUrl}" class="msg-image" loading="lazy" onclick="window.openFullscreen(this.src)">`;
+        bubble.appendChild(imgWrap);
       }
 
       const textEl = document.createElement("span"); textEl.className = "text"; textEl.innerHTML = formatText(msg.text); bubble.appendChild(textEl);
@@ -564,28 +576,23 @@
 
       row.appendChild(bubble); messagesEl.appendChild(row);
 
-      if (type === "theirs" && msg.text.includes(`@${myName}`)) row.classList.add("mentioned");
+      if (type === "theirs" && msg.text && msg.text.includes(`@${myName}`)) row.classList.add("mentioned");
       if (msg.edited) textEl.innerHTML += '<span class="edited">(изменено)</span>';
 
-      // Обработчики: Контекстное меню
       bubble.addEventListener("contextmenu", (e) => showContextMenu(e, msg.id, msg.text, msg.name, type === "mine"));
       
-      // Обработчики: Swipe-to-Reply (Свайп влево)
       let touchStartX = 0, isSwiping = false;
       row.addEventListener("touchstart", (e) => { touchStartX = e.touches[0].clientX; isSwiping = true; row.style.transition = 'none'; }, {passive: true});
       row.addEventListener("touchmove", (e) => { 
         if (!isSwiping) return;
         let dx = e.touches[0].clientX - touchStartX;
-        // Разрешаем тянуть влево на телефоне
         if (dx < 0 && dx > -60) row.style.transform = `translateX(${dx}px)`;
       }, {passive: true});
       row.addEventListener("touchend", (e) => {
         if (!isSwiping) return;
-        isSwiping = false;
-        let dx = e.changedTouches[0].clientX - touchStartX;
-        row.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
-        row.style.transform = '';
-        if (dx < -40) activateReply(msg.id, msg.name, msg.text); // Срабатывание свайпа
+        isSwiping = false; let dx = e.changedTouches[0].clientX - touchStartX;
+        row.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)'; row.style.transform = '';
+        if (dx < -40) activateReply(msg.id, msg.name, msg.text);
       }, {passive: true});
       
       bubble.addEventListener("touchstart", (e) => { longPressTimer = setTimeout(() => showContextMenu(e, msg.id, msg.text, msg.name, type === "mine", true), 600); }, {passive: true});
