@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#0078ff" />
   <title>Голубь</title>
@@ -83,7 +87,8 @@
     #chat-wrapper { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--bg); }
     #header { flex-shrink: 0; background: var(--bg-header); color: #fff; padding: 10px 16px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
     .header-left { display: flex; flex-direction: column; min-width: 0; }
-    #online-count { font-size: 12px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #online-count { font-size: 12px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; text-decoration: underline; text-decoration-color: rgba(255,255,255,0.4); text-underline-offset: 3px; transition: opacity 0.2s; pointer-events: auto; }
+    #online-count:hover { opacity: 1; text-decoration-color: #fff; }
     #status { font-size: 11px; opacity: 0.75; white-space: nowrap; }
     .header-center { text-align: center; white-space: nowrap; }
     #header-title { font-size: 18px; font-weight: 800; letter-spacing: 0.5px; }
@@ -94,15 +99,22 @@
     .date-separator { display: flex; align-items: center; justify-content: center; margin: 10px 0 6px; flex-shrink: 0; }
     .date-separator span { background: var(--date-bg); color: var(--date-text); font-size: 12px; padding: 3px 12px; border-radius: 20px; font-weight: 500; }
 
+    /* Список участников */
+    #users-list { max-height: 50vh; overflow-y: auto; margin: 12px 0 20px; text-align: left; padding-right: 4px; }
+    .user-item { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .user-item:last-child { border-bottom: none; }
+    .user-item .avatar { width: 36px; height: 36px; font-size: 14px; }
+    .user-item span { color: var(--text); font-weight: 500; font-size: 15px; }
+
     /* Строки сообщений */
     .msg-row { display: flex; align-items: flex-end; gap: 8px; animation: msgIn 0.18s ease-out; }
     @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .msg-row.mine { flex-direction: row-reverse; }
     .avatar { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; text-transform: uppercase; }
     .msg-row.mine .avatar { display: none; }
-    .msg { max-width: 72%; padding: 7px 12px 5px; border-radius: 16px; font-size: 15px; line-height: 1.4; word-break: break-word; }
+    .msg { max-width: 72%; padding: 7px 12px 5px; border-radius: 16px; font-size: 15px; line-height: 1.4; word-break: break-word; user-select: none; -webkit-user-select: none; }
     .msg .author { font-size: 12px; font-weight: 600; margin-bottom: 2px; display: block; }
-    .msg .text { display: block; }
+    .msg .text { display: block; user-select: text; -webkit-user-select: text; }
     
     /* ВРЕМЯ И ГАЛОЧКИ */
     .msg .time { font-size: 11px; float: right; margin-left: 8px; margin-top: 2px; }
@@ -119,8 +131,12 @@
     .msg .text i { font-style: italic; }
     .msg .text code { background: var(--code-bg); color: var(--code-text); padding: 1px 5px; border-radius: 4px; font-family: monospace; font-size: 13px; }
     .msg .text a { color: inherit; text-decoration: underline; text-underline-offset: 2px; opacity: 0.85; }
+    .msg .text .edited { font-size: 11px; opacity: 0.6; font-style: italic; margin-left: 6px; }
+    .mention-tag { color: #0078ff; font-weight: 600; }
+    .msg-row.mentioned .msg { background: rgba(0, 120, 255, 0.15); border: 1px solid rgba(0, 120, 255, 0.3); }
+
     .msg-row.system { justify-content: center; margin: 4px 0; }
-    .msg-row.system .msg { background: transparent; color: var(--text-system); font-size: 12px; padding: 2px 8px; max-width: 100%; text-align: center; }
+    .msg-row.system .msg { background: transparent; color: var(--text-system); font-size: 12px; padding: 2px 8px; max-width: 100%; text-align: center; box-shadow: none; border: none; }
 
     /* Элементы управления */
     #history-loader { display: flex; justify-content: center; padding: 24px 0 12px; flex-shrink: 0; }
@@ -132,20 +148,16 @@
     #unread-badge { position: absolute; top: -5px; right: -5px; background: #e53935; color: #fff; font-size: 10px; font-weight: 700; min-width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
     #unread-badge.hidden { display: none; }
     #typing-indicator { flex-shrink: 0; min-height: 20px; padding: 0 16px 4px; font-size: 12px; color: var(--text-muted); font-style: italic; }
-    #form { flex-shrink: 0; display: flex; flex-direction: column; gap: 3px; padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); background: var(--bg-form); border-top: 1px solid var(--border); }
-    #form-row { display: flex; align-items: center; gap: 8px; }
+    
+    #form { flex-shrink: 0; display: flex; flex-direction: column; background: var(--bg-form); border-top: 1px solid var(--border); position: relative; }
+    #edit-bar { display: none; background: var(--bg-input); padding: 8px 12px; border-bottom: 1px solid var(--border); align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-muted); }
+    #edit-bar.active { display: flex; }
+    #cancel-edit { cursor: pointer; color: #e53935; font-weight: bold; font-size: 18px; padding: 0 8px; }
+    #form-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
     #input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 24px; font-size: 16px; outline: none; background: var(--bg-input); color: var(--text); }
-    #char-counter { font-size: 11px; color: var(--text-muted); text-align: right; padding-right: 54px; height: 14px; }
-    #char-counter.warn { color: #fb8c00; }
-    #char-counter.limit { color: #e53935; font-weight: 600; }
-    #char-counter.hidden { visibility: hidden; height: 0; }
     #send-btn { flex-shrink: 0; width: 44px; height: 44px; background: #0078ff; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     #send-btn svg { width: 20px; height: 20px; fill: #fff; }
 
-    /* Темы */
-    [data-theme="dark"] { --bg: #0e1117; --bg-header: #1a2233; --bg-msg-mine: #0078ff; --bg-msg-their: #1e2a3a; --bg-form: #1a2233; --bg-input: #0e1117; --bg-modal: #1a2233; --text: #e8eaf0; --text-their: #e8eaf0; --text-muted: #7a8899; --text-system: #6a7888; --text-time-their: rgba(232,234,240,.45); --text-time-mine: rgba(255,255,255,.65); --border: #243040; --shadow: 0 1px 3px rgba(0,0,0,.35); --date-bg: rgba(255,255,255,.07); --date-text: #8a9ab0; --code-bg: rgba(255,255,255,.08); --code-text: #e06c75; --overlay-bg: rgba(0,0,0,.7); }
-    [data-theme="light"] { --bg: #f0f2f5; --bg-header: #0078ff; --bg-msg-mine: #0078ff; --bg-msg-their: #ffffff; --bg-form: #ffffff; --bg-input: #f0f2f5; --bg-modal: #ffffff; --text: #111111; --text-their: #222222; --text-muted: #888888; --text-system: #999999; --text-time-their: rgba(0,0,0,.45); --text-time-mine: rgba(255,255,255,.65); --border: #e0e0e0; --shadow: 0 1px 2px rgba(0,0,0,.10); --date-bg: rgba(0,0,0,.08); --date-text: #555; --code-bg: rgba(0,0,0,.07); --code-text: #c0392b; --overlay-bg: rgba(0,0,0,.5); }
-    @media (min-width: 640px) { body { background: #c8d4e0; } @media (prefers-color-scheme: dark) { body { background: #07090e; } } #chat-wrapper, .modal-overlay { left: 50%; right: auto; transform: translateX(-50%); width: 600px; } #chat-wrapper { box-shadow: 0 0 40px rgba(0,0,0,.2); } }
     /* Контекстное меню */
     #context-menu { position: fixed; background: var(--bg-modal); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; display: flex; flex-direction: column; min-width: 140px; overflow: hidden; }
     #context-menu.hidden { display: none; }
@@ -158,16 +170,11 @@
     #mentions-popup.hidden { display: none; }
     .mention-item { padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
     .mention-item:hover { background: var(--bg-input); }
-    
-    /* Форматирование внутри чата */
-    .msg .text .edited { font-size: 11px; opacity: 0.6; font-style: italic; margin-left: 6px; }
-    .mention-tag { color: #0078ff; font-weight: 600; }
-    .msg-row.mentioned .msg { background: rgba(0, 120, 255, 0.15); border: 1px solid rgba(0, 120, 255, 0.3); }
-    
-    /* Режим редактирования */
-    #edit-bar { display: none; background: var(--bg-input); padding: 8px 12px; border-top: 1px solid var(--border); align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-muted); }
-    #edit-bar.active { display: flex; }
-    #cancel-edit { cursor: pointer; color: #e53935; font-weight: bold; font-size: 18px; padding: 0 8px; }
+
+    /* Темы */
+    [data-theme="dark"] { --bg: #0e1117; --bg-header: #1a2233; --bg-msg-mine: #0078ff; --bg-msg-their: #1e2a3a; --bg-form: #1a2233; --bg-input: #0e1117; --bg-modal: #1a2233; --text: #e8eaf0; --text-their: #e8eaf0; --text-muted: #7a8899; --text-system: #6a7888; --text-time-their: rgba(232,234,240,.45); --text-time-mine: rgba(255,255,255,.65); --border: #243040; --shadow: 0 1px 3px rgba(0,0,0,.35); --date-bg: rgba(255,255,255,.07); --date-text: #8a9ab0; --code-bg: rgba(255,255,255,.08); --code-text: #e06c75; --overlay-bg: rgba(0,0,0,.7); }
+    [data-theme="light"] { --bg: #f0f2f5; --bg-header: #0078ff; --bg-msg-mine: #0078ff; --bg-msg-their: #ffffff; --bg-form: #ffffff; --bg-input: #f0f2f5; --bg-modal: #ffffff; --text: #111111; --text-their: #222222; --text-muted: #888888; --text-system: #999999; --text-time-their: rgba(0,0,0,.45); --text-time-mine: rgba(255,255,255,.65); --border: #e0e0e0; --shadow: 0 1px 2px rgba(0,0,0,.10); --date-bg: rgba(0,0,0,.08); --date-text: #555; --code-bg: rgba(0,0,0,.07); --code-text: #c0392b; --overlay-bg: rgba(0,0,0,.5); }
+    @media (min-width: 640px) { body { background: #c8d4e0; } @media (prefers-color-scheme: dark) { body { background: #07090e; } } #chat-wrapper, .modal-overlay { left: 50%; right: auto; transform: translateX(-50%); width: 600px; } #chat-wrapper { box-shadow: 0 0 40px rgba(0,0,0,.2); } }
   </style>
 </head>
 <body>
@@ -210,6 +217,15 @@
     </div>
   </div>
 
+  <div class="modal-overlay hidden" id="users-screen">
+    <div class="modal-box">
+      <div class="icon">👥</div>
+      <h2>Участники онлайн</h2>
+      <div id="users-list"></div>
+      <button class="modal-btn secondary" id="users-close">Закрыть</button>
+    </div>
+  </div>
+
   <div id="chat-wrapper">
     <div id="header">
       <div class="header-left"><span id="online-count">загрузка...</span><span id="status">Подключение...</span></div>
@@ -221,14 +237,13 @@
       <button id="scroll-down" class="hidden" title="Прокрутить вниз">↓<span id="unread-badge" class="hidden"></span></button>
     </div>
     <div id="typing-indicator"></div>
-    <div id="mentions-popup" class="hidden"></div>
     <div id="form">
+      <div id="mentions-popup" class="hidden"></div>
       <div id="edit-bar"><span id="edit-text">✏️ Редактирование сообщения...</span><span id="cancel-edit" title="Отменить">×</span></div>
       <div id="form-row">
         <input id="input" type="text" placeholder="Введите текст" autocomplete="off" enterkeyhint="send" maxlength="10000" />
         <button type="button" id="send-btn"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
       </div>
-      <div id="char-counter" class="hidden"></div>
     </div>
   </div>
 
@@ -237,23 +252,36 @@
     <button class="ctx-item" id="ctx-edit">Изменить</button>
     <button class="ctx-item danger" id="ctx-delete">Удалить</button>
   </div>
+
   <script>
     // ===== Элементы =====
     const passwordScreen = document.getElementById("password-screen"), passwordInput = document.getElementById("password-input"), passwordBtn = document.getElementById("password-btn"), passwordError = document.getElementById("password-error");
     const nameScreen = document.getElementById("name-screen"), nameInput = document.getElementById("name-input"), nameBtn = document.getElementById("name-btn");
     const renameScreen = document.getElementById("rename-screen"), renameInput = document.getElementById("rename-input"), renameBtn = document.getElementById("rename-btn"), renameCancel = document.getElementById("rename-cancel");
+    const usersScreen = document.getElementById("users-screen"), usersListEl = document.getElementById("users-list"), usersClose = document.getElementById("users-close");
     const settingsBtn = document.getElementById("settings-btn"), messagesEl = document.getElementById("messages"), historyLoader = document.getElementById("history-loader"), statusEl = document.getElementById("status"), onlineEl = document.getElementById("online-count"), typingEl = document.getElementById("typing-indicator");
-    const input = document.getElementById("input"), sendBtn = document.getElementById("send-btn"), charCounter = document.getElementById("char-counter"), scrollDownBtn = document.getElementById("scroll-down"), unreadBadge = document.getElementById("unread-badge");
+    const input = document.getElementById("input"), sendBtn = document.getElementById("send-btn"), scrollDownBtn = document.getElementById("scroll-down"), unreadBadge = document.getElementById("unread-badge");
+
+    // ===== Состояние =====
+    let myName = localStorage.getItem("chat_name") || "", savedPassword = localStorage.getItem("chat_password") || "";
+    let wsReady = false, stopReconnect = false, ws, reconnectTimer;
+    let unreadCount = 0, isAtBottom = true;
+    let currentUsersList = [];
 
     // ===== ЛОГИКА КОНТЕКСТНОГО МЕНЮ И РЕДАКТИРОВАНИЯ =====
     const ctxMenu = document.getElementById("context-menu");
     let ctxTargetId = null, ctxTargetText = "", editingMsgId = null, longPressTimer;
 
-    function showContextMenu(e, id, text, isMine) {
-      e.preventDefault();
+    function showContextMenu(e, id, text, isMine, isTouch = false) {
+      if (!id) return; // Игнорируем старую историю без ID
+      if (!isTouch && e.preventDefault) e.preventDefault();
       ctxTargetId = id; ctxTargetText = text;
-      ctxMenu.style.left = `${Math.min(e.clientX, window.innerWidth - 150)}px`;
-      ctxMenu.style.top = `${Math.min(e.clientY, window.innerHeight - 150)}px`;
+      
+      const clientX = isTouch ? e.touches[0].clientX : e.clientX;
+      const clientY = isTouch ? e.touches[0].clientY : e.clientY;
+      
+      ctxMenu.style.left = `${Math.min(clientX, window.innerWidth - 150)}px`;
+      ctxMenu.style.top = `${Math.min(clientY, window.innerHeight - 150)}px`;
       document.getElementById("ctx-edit").style.display = isMine ? "block" : "none";
       document.getElementById("ctx-delete").style.display = isMine ? "block" : "none";
       ctxMenu.classList.remove("hidden");
@@ -277,7 +305,7 @@
       const val = input.value, cursor = input.selectionStart;
       const lastWord = val.slice(0, cursor).split(/\s/).pop();
       
-      if (lastWord.startsWith("@") && typeof currentUsersList !== 'undefined' && currentUsersList.length > 0) {
+      if (lastWord.startsWith("@") && currentUsersList.length > 0) {
         const query = lastWord.slice(1).toLowerCase();
         const matches = currentUsersList.filter(u => u.toLowerCase().includes(query) && u !== myName);
         
@@ -299,13 +327,8 @@
       }
       mentionsPopup.classList.add("hidden");
     }
-    
-    // ===== Состояние =====
-    let myName = localStorage.getItem("chat_name") || "", savedPassword = localStorage.getItem("chat_password") || "";
-    let wsReady = false, stopReconnect = false, ws, reconnectTimer;
-    let unreadCount = 0, isAtBottom = true;
 
-    // ===== НАБЛЮДАТЕЛЬ ЗА ПРОЧТЕНИЕМ (Intersection Observer) =====
+    // ===== НАБЛЮДАТЕЛЬ ЗА ПРОЧТЕНИЕМ =====
     const readObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -313,18 +336,18 @@
           const id = row.dataset.id;
           if (id && wsReady) {
             ws.send(JSON.stringify({ type: "mark-read", id }));
-            readObserver.unobserve(row); // Срабатывает один раз для каждого сообщения
+            readObserver.unobserve(row);
           }
         }
       });
-    }, { threshold: 0.5 }); // Сообщение должно быть видно на 50%
+    }, { threshold: 0.5 });
 
     function generateId() {
       return Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
     }
 
     input.addEventListener("input", (e) => {
-      handleMentionsInput(e); // Вызов функции для меню упоминаний
+      handleMentionsInput(e);
       sendTyping(true); clearTimeout(typingTimer); typingTimer = setTimeout(() => sendTyping(false), 2000);
     });
 
@@ -380,19 +403,6 @@
 
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        if (data.type === "delete") {
-          const row = document.querySelector(`.msg-row[data-id="${data.id}"]`);
-          if (row) row.remove();
-          return;
-        }
-        if (data.type === "edit") {
-          const row = document.querySelector(`.msg-row[data-id="${data.id}"]`);
-          if (row) {
-            const tEl = row.querySelector(".text");
-            tEl.innerHTML = formatText(data.text) + '<span class="edited">(изменено)</span>';
-          }
-          return;
-        }
 
         if (data.type === "need-password") {
           if (savedPassword) ws.send(JSON.stringify({ type: "auth", password: savedPassword }));
@@ -423,7 +433,6 @@
           lastDateLabel = null;
           if (data.messages.length > 0) {
             maybeInsertDateSeparator("История");
-            // ВАЖНОЕ ИСПРАВЛЕНИЕ: теперь история понимает, где ВАШИ старые сообщения, а где чужие
             data.messages.forEach(msg => addMessage(msg, msg.name === myName ? "mine" : "theirs", true));
           }
           scrollToBottom(false);
@@ -437,18 +446,37 @@
           return;
         }
         
-        // Перехватчик прочтения
         if (data.type === "msg-read") {
           const row = document.querySelector(`.msg-row[data-id="${data.id}"]`);
+          if (row) { const ticks = row.querySelector('.ticks'); if (ticks) ticks.textContent = " ✓✓"; }
+          return;
+        }
+
+        if (data.type === "delete") {
+          const row = document.querySelector(`.msg-row[data-id="${data.id}"]`);
+          if (row) row.remove();
+          return;
+        }
+
+        if (data.type === "edit") {
+          const row = document.querySelector(`.msg-row[data-id="${data.id}"]`);
           if (row) {
-            const ticks = row.querySelector('.ticks');
-            if (ticks) ticks.textContent = " ✓✓";
+            const tEl = row.querySelector(".text");
+            tEl.innerHTML = formatText(data.text) + '<span class="edited">(изменено)</span>';
           }
           return;
         }
 
         if (data.type === "system") { addSystemMessage(data.text); return; }
-        if (data.type === "online") { const n = data.count; const w = n === 1 ? "участник" : n < 5 ? "участника" : "участников"; onlineEl.textContent = `${n} / 15 ${w}`; return; }
+        
+        if (data.type === "online") { 
+          const n = data.count; 
+          const w = n === 1 ? "участник" : n < 5 ? "участника" : "участников"; 
+          onlineEl.textContent = `${n} / 15 ${w}`; 
+          currentUsersList = data.users || [];
+          return; 
+        }
+        
         if (data.type === "typing") updateTyping(data.name, data.isTyping);
       };
     }
@@ -475,13 +503,28 @@
     function submitRename() { const val = renameInput.value.trim(); if (!val) return; const oldName = myName; myName = val; localStorage.setItem("chat_name", myName); renameScreen.classList.add("hidden"); if (wsReady) ws.send(JSON.stringify({ type: "join", name: myName })); addSystemMessage(`Вы сменили имя: ${oldName} → ${myName}`); }
     renameBtn.addEventListener("click", submitRename); renameInput.addEventListener("keydown", e => { if (e.key === "Enter") submitRename(); });
 
+    // Окно участников
+    onlineEl.addEventListener("click", () => {
+      if (currentUsersList.length === 0) return;
+      usersListEl.innerHTML = "";
+      currentUsersList.forEach(name => {
+        const div = document.createElement("div"); div.className = "user-item";
+        const av = document.createElement("div"); av.className = "avatar"; av.style.background = nameToColor(name); av.textContent = (name || "?")[0].toUpperCase();
+        const nameSpan = document.createElement("span"); nameSpan.textContent = name;
+        if (name === myName) { nameSpan.textContent += " (Вы)"; nameSpan.style.color = "var(--text-muted)"; }
+        div.appendChild(av); div.appendChild(nameSpan); usersListEl.appendChild(div);
+      });
+      usersScreen.classList.remove("hidden");
+    });
+    usersClose.addEventListener("click", () => usersScreen.classList.add("hidden"));
+
     function joinChat() { if (wsReady) { historyLoader.classList.remove("hidden"); ws.send(JSON.stringify({ type: "join", name: myName })); requestNotificationPermission(); } }
 
     function sendMessage() {
       const text = input.value.trim();
       if (!text || !wsReady) return;
       const time = new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-      maybeInsertDateSeparator(getDateLabel());
+      
       if (editingMsgId) {
         ws.send(JSON.stringify({ type: "edit", id: editingMsgId, text }));
         const row = document.querySelector(`.msg-row[data-id="${editingMsgId}"]`);
@@ -489,20 +532,15 @@
            const tEl = row.querySelector(".text");
            tEl.innerHTML = formatText(text) + '<span class="edited">(изменено)</span>';
         }
-        document.getElementById("cancel-edit").click(); // Закрываем режим
+        document.getElementById("cancel-edit").click();
         return;
       }
 
-      // Генерируем ID прямо здесь
+      maybeInsertDateSeparator(getDateLabel());
       const msgId = generateId();
-      
-      // Отправляем на сервер с ID
       ws.send(JSON.stringify({ type: "message", text, id: msgId }));
-      
-      // Сразу отрисовываем у себя с 1 галочкой (read: false)
       addMessage({ id: msgId, name: myName, text, time, read: false }, "mine", false);
-      
-      input.value = ""; charCounter.className = "hidden"; input.focus(); sendTyping(false);
+      input.value = ""; input.focus(); sendTyping(false);
     }
     sendBtn.addEventListener("click", sendMessage); input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
 
@@ -518,7 +556,7 @@
     function addMessage(msg, type, fromHistory) {
       const row = document.createElement("div");
       row.className = `msg-row ${type}`;
-      if (msg.id) row.dataset.id = msg.id; // Привязываем ID к строке
+      if (msg.id) row.dataset.id = msg.id; 
       if (fromHistory) row.style.animation = "none";
 
       if (type === "theirs") {
@@ -534,38 +572,34 @@
         const timeEl = document.createElement("span");
         timeEl.className = "time";
         timeEl.textContent = msg.time;
-        
-        // Галочки: рисуем только для СВОИХ сообщений
         if (type === "mine") {
           const ticks = document.createElement("span");
           ticks.className = "ticks";
           ticks.textContent = msg.read ? " ✓✓" : " ✓";
           timeEl.appendChild(ticks);
         }
-        
         bubble.appendChild(timeEl);
       }
 
       row.appendChild(bubble);
+      messagesEl.appendChild(row);
+
       // Подсветка, если упомянули нас
       if (type === "theirs" && msg.text.includes(`@${myName}`)) row.classList.add("mentioned");
-      // Метка (изменено) из истории
       if (msg.edited) textEl.innerHTML += '<span class="edited">(изменено)</span>';
 
       // Вызов контекстного меню
       bubble.addEventListener("contextmenu", (e) => showContextMenu(e, msg.id, msg.text, type === "mine"));
       bubble.addEventListener("touchstart", (e) => {
-        longPressTimer = setTimeout(() => showContextMenu(e.touches[0], msg.id, msg.text, type === "mine"), 600);
+        longPressTimer = setTimeout(() => showContextMenu(e, msg.id, msg.text, type === "mine", true), 600);
       }, {passive: true});
       bubble.addEventListener("touchend", () => clearTimeout(longPressTimer));
       bubble.addEventListener("touchmove", () => clearTimeout(longPressTimer));
-      messagesEl.appendChild(row);
 
       if (!fromHistory && type === "theirs" && !isAtBottom) {
         unreadCount++; unreadBadge.textContent = unreadCount > 99 ? "99+" : unreadCount; unreadBadge.classList.remove("hidden");
       }
 
-      // Активируем наблюдателя для чужих непрочитанных сообщений
       if (type === "theirs" && !msg.read && msg.id) {
         readObserver.observe(row);
       }
