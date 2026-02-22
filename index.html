@@ -146,6 +146,28 @@
     [data-theme="dark"] { --bg: #0e1117; --bg-header: #1a2233; --bg-msg-mine: #0078ff; --bg-msg-their: #1e2a3a; --bg-form: #1a2233; --bg-input: #0e1117; --bg-modal: #1a2233; --text: #e8eaf0; --text-their: #e8eaf0; --text-muted: #7a8899; --text-system: #6a7888; --text-time-their: rgba(232,234,240,.45); --text-time-mine: rgba(255,255,255,.65); --border: #243040; --shadow: 0 1px 3px rgba(0,0,0,.35); --date-bg: rgba(255,255,255,.07); --date-text: #8a9ab0; --code-bg: rgba(255,255,255,.08); --code-text: #e06c75; --overlay-bg: rgba(0,0,0,.7); }
     [data-theme="light"] { --bg: #f0f2f5; --bg-header: #0078ff; --bg-msg-mine: #0078ff; --bg-msg-their: #ffffff; --bg-form: #ffffff; --bg-input: #f0f2f5; --bg-modal: #ffffff; --text: #111111; --text-their: #222222; --text-muted: #888888; --text-system: #999999; --text-time-their: rgba(0,0,0,.45); --text-time-mine: rgba(255,255,255,.65); --border: #e0e0e0; --shadow: 0 1px 2px rgba(0,0,0,.10); --date-bg: rgba(0,0,0,.08); --date-text: #555; --code-bg: rgba(0,0,0,.07); --code-text: #c0392b; --overlay-bg: rgba(0,0,0,.5); }
     @media (min-width: 640px) { body { background: #c8d4e0; } @media (prefers-color-scheme: dark) { body { background: #07090e; } } #chat-wrapper, .modal-overlay { left: 50%; right: auto; transform: translateX(-50%); width: 600px; } #chat-wrapper { box-shadow: 0 0 40px rgba(0,0,0,.2); } }
+    /* Контекстное меню */
+    #context-menu { position: fixed; background: var(--bg-modal); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; display: flex; flex-direction: column; min-width: 140px; overflow: hidden; }
+    #context-menu.hidden { display: none; }
+    .ctx-item { padding: 12px 16px; cursor: pointer; font-size: 15px; color: var(--text); background: transparent; border: none; border-bottom: 1px solid var(--border); text-align: left; transition: 0.1s; }
+    .ctx-item:hover { background: var(--bg-input); }
+    .ctx-item.danger { color: #e53935; }
+
+    /* Попап упоминаний */
+    #mentions-popup { position: absolute; bottom: 100%; left: 12px; background: var(--bg-modal); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 -4px 12px rgba(0,0,0,0.1); max-height: 200px; overflow-y: auto; z-index: 100; display: flex; flex-direction: column; min-width: 200px; margin-bottom: 8px; }
+    #mentions-popup.hidden { display: none; }
+    .mention-item { padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+    .mention-item:hover { background: var(--bg-input); }
+    
+    /* Форматирование внутри чата */
+    .msg .text .edited { font-size: 11px; opacity: 0.6; font-style: italic; margin-left: 6px; }
+    .mention-tag { color: #0078ff; font-weight: 600; }
+    .msg-row.mentioned .msg { background: rgba(0, 120, 255, 0.15); border: 1px solid rgba(0, 120, 255, 0.3); }
+    
+    /* Режим редактирования */
+    #edit-bar { display: none; background: var(--bg-input); padding: 8px 12px; border-top: 1px solid var(--border); align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-muted); }
+    #edit-bar.active { display: flex; }
+    #cancel-edit { cursor: pointer; color: #e53935; font-weight: bold; font-size: 18px; padding: 0 8px; }
   </style>
 </head>
 <body>
@@ -199,15 +221,22 @@
       <button id="scroll-down" class="hidden" title="Прокрутить вниз">↓<span id="unread-badge" class="hidden"></span></button>
     </div>
     <div id="typing-indicator"></div>
+    <div id="mentions-popup" class="hidden"></div>
     <div id="form">
+      <div id="edit-bar"><span id="edit-text">✏️ Редактирование сообщения...</span><span id="cancel-edit" title="Отменить">×</span></div>
       <div id="form-row">
-        <input id="input" type="text" placeholder="Введите текст" autocomplete="off" enterkeyhint="send" maxlength="2000" />
+        <input id="input" type="text" placeholder="Введите текст" autocomplete="off" enterkeyhint="send" maxlength="10000" />
         <button type="button" id="send-btn"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
       </div>
       <div id="char-counter" class="hidden"></div>
     </div>
   </div>
 
+  <div id="context-menu" class="hidden">
+    <button class="ctx-item" id="ctx-copy">Копировать</button>
+    <button class="ctx-item" id="ctx-edit">Изменить</button>
+    <button class="ctx-item danger" id="ctx-delete">Удалить</button>
+  </div>
   <script>
     // ===== Элементы =====
     const passwordScreen = document.getElementById("password-screen"), passwordInput = document.getElementById("password-input"), passwordBtn = document.getElementById("password-btn"), passwordError = document.getElementById("password-error");
@@ -216,6 +245,61 @@
     const settingsBtn = document.getElementById("settings-btn"), messagesEl = document.getElementById("messages"), historyLoader = document.getElementById("history-loader"), statusEl = document.getElementById("status"), onlineEl = document.getElementById("online-count"), typingEl = document.getElementById("typing-indicator");
     const input = document.getElementById("input"), sendBtn = document.getElementById("send-btn"), charCounter = document.getElementById("char-counter"), scrollDownBtn = document.getElementById("scroll-down"), unreadBadge = document.getElementById("unread-badge");
 
+    // ===== ЛОГИКА КОНТЕКСТНОГО МЕНЮ И РЕДАКТИРОВАНИЯ =====
+    const ctxMenu = document.getElementById("context-menu");
+    let ctxTargetId = null, ctxTargetText = "", editingMsgId = null, longPressTimer;
+
+    function showContextMenu(e, id, text, isMine) {
+      e.preventDefault();
+      ctxTargetId = id; ctxTargetText = text;
+      ctxMenu.style.left = `${Math.min(e.clientX, window.innerWidth - 150)}px`;
+      ctxMenu.style.top = `${Math.min(e.clientY, window.innerHeight - 150)}px`;
+      document.getElementById("ctx-edit").style.display = isMine ? "block" : "none";
+      document.getElementById("ctx-delete").style.display = isMine ? "block" : "none";
+      ctxMenu.classList.remove("hidden");
+    }
+
+    document.addEventListener("click", () => ctxMenu.classList.add("hidden"));
+    
+    document.getElementById("ctx-copy").onclick = () => navigator.clipboard.writeText(ctxTargetText);
+    document.getElementById("ctx-delete").onclick = () => { if(wsReady && ctxTargetId) ws.send(JSON.stringify({ type: "delete", id: ctxTargetId })); };
+    document.getElementById("ctx-edit").onclick = () => {
+      editingMsgId = ctxTargetId; input.value = ctxTargetText;
+      document.getElementById("edit-bar").classList.add("active"); input.focus();
+    };
+    document.getElementById("cancel-edit").onclick = () => {
+      editingMsgId = null; input.value = ""; document.getElementById("edit-bar").classList.remove("active");
+    };
+
+    // ===== ЛОГИКА УПОМИНАНИЙ =====
+    const mentionsPopup = document.getElementById("mentions-popup");
+    function handleMentionsInput(e) {
+      const val = input.value, cursor = input.selectionStart;
+      const lastWord = val.slice(0, cursor).split(/\s/).pop();
+      
+      if (lastWord.startsWith("@") && typeof currentUsersList !== 'undefined' && currentUsersList.length > 0) {
+        const query = lastWord.slice(1).toLowerCase();
+        const matches = currentUsersList.filter(u => u.toLowerCase().includes(query) && u !== myName);
+        
+        if (matches.length > 0) {
+          mentionsPopup.innerHTML = "";
+          matches.forEach(m => {
+            const div = document.createElement("div"); div.className = "mention-item";
+            const av = document.createElement("div"); av.className = "avatar"; av.style.width = "24px"; av.style.height = "24px"; av.style.fontSize = "11px"; av.style.background = nameToColor(m); av.textContent = m[0].toUpperCase();
+            const span = document.createElement("span"); span.textContent = m;
+            div.appendChild(av); div.appendChild(span);
+            div.onclick = () => {
+              input.value = val.slice(0, cursor - lastWord.length) + "@" + m + " " + val.slice(cursor);
+              mentionsPopup.classList.add("hidden"); input.focus();
+            };
+            mentionsPopup.appendChild(div);
+          });
+          mentionsPopup.classList.remove("hidden"); return;
+        }
+      }
+      mentionsPopup.classList.add("hidden");
+    }
+    
     // ===== Состояние =====
     let myName = localStorage.getItem("chat_name") || "", savedPassword = localStorage.getItem("chat_password") || "";
     let wsReady = false, stopReconnect = false, ws, reconnectTimer;
@@ -239,9 +323,8 @@
       return Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
     }
 
-    input.addEventListener("input", () => {
-      const len = input.value.length, left = 2000 - len;
-      if (len >= 1800) { charCounter.textContent = `${left} симв. осталось`; charCounter.className = left <= 0 ? "limit" : "warn"; } else { charCounter.className = "hidden"; }
+    input.addEventListener("input", (e) => {
+      handleMentionsInput(e); // Вызов функции для меню упоминаний
       sendTyping(true); clearTimeout(typingTimer); typingTimer = setTimeout(() => sendTyping(false), 2000);
     });
 
@@ -273,6 +356,7 @@
       let s = raw.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       s = s.replace(/(https?:\/\/[^\s<>"']+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
       s = s.replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*([^*\n]+)\*/g, "<b>$1</b>").replace(/_([^_\n]+)_/g, "<i>$1</i>");
+      s = s.replace(/@([А-Яа-яA-Za-z0-9_]+)/g, '<span class="mention-tag">@$1</span>');
       return s;
     }
 
@@ -296,6 +380,19 @@
 
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        if (data.type === "delete") {
+          const row = document.querySelector(`.msg-row[data-id="${data.id}"]`);
+          if (row) row.remove();
+          return;
+        }
+        if (data.type === "edit") {
+          const row = document.querySelector(`.msg-row[data-id="${data.id}"]`);
+          if (row) {
+            const tEl = row.querySelector(".text");
+            tEl.innerHTML = formatText(data.text) + '<span class="edited">(изменено)</span>';
+          }
+          return;
+        }
 
         if (data.type === "need-password") {
           if (savedPassword) ws.send(JSON.stringify({ type: "auth", password: savedPassword }));
@@ -385,6 +482,16 @@
       if (!text || !wsReady) return;
       const time = new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
       maybeInsertDateSeparator(getDateLabel());
+      if (editingMsgId) {
+        ws.send(JSON.stringify({ type: "edit", id: editingMsgId, text }));
+        const row = document.querySelector(`.msg-row[data-id="${editingMsgId}"]`);
+        if(row) {
+           const tEl = row.querySelector(".text");
+           tEl.innerHTML = formatText(text) + '<span class="edited">(изменено)</span>';
+        }
+        document.getElementById("cancel-edit").click(); // Закрываем режим
+        return;
+      }
 
       // Генерируем ID прямо здесь
       const msgId = generateId();
@@ -440,6 +547,18 @@
       }
 
       row.appendChild(bubble);
+      // Подсветка, если упомянули нас
+      if (type === "theirs" && msg.text.includes(`@${myName}`)) row.classList.add("mentioned");
+      // Метка (изменено) из истории
+      if (msg.edited) textEl.innerHTML += '<span class="edited">(изменено)</span>';
+
+      // Вызов контекстного меню
+      bubble.addEventListener("contextmenu", (e) => showContextMenu(e, msg.id, msg.text, type === "mine"));
+      bubble.addEventListener("touchstart", (e) => {
+        longPressTimer = setTimeout(() => showContextMenu(e.touches[0], msg.id, msg.text, type === "mine"), 600);
+      }, {passive: true});
+      bubble.addEventListener("touchend", () => clearTimeout(longPressTimer));
+      bubble.addEventListener("touchmove", () => clearTimeout(longPressTimer));
       messagesEl.appendChild(row);
 
       if (!fromHistory && type === "theirs" && !isAtBottom) {
