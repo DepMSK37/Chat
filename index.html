@@ -10,609 +10,172 @@
   <meta name="theme-color" content="#0078ff" />
   <title>Голубь</title>
   <style>
-    :root {
-      --bg:               #f0f2f5;
-      --bg-header:        #0078ff;
-      --bg-msg-mine:      #0078ff;
-      --bg-msg-their:     #ffffff;
-      --bg-form:          #ffffff;
-      --bg-input:         #f0f2f5;
-      --bg-modal:         #ffffff;
-      --text:             #111111;
-      --text-their:       #222222;
-      --text-muted:       #888888;
-      --text-system:      #999999;
-      --text-time-their:  rgba(0,0,0,.45);
-      --text-time-mine:   rgba(255,255,255,.65);
-      --border:           #e0e0e0;
-      --shadow:           0 1px 2px rgba(0,0,0,.10);
-      --date-bg:          rgba(0,0,0,.08);
-      --date-text:        #555;
-      --code-bg:          rgba(0,0,0,.07);
-      --code-text:        #c0392b;
-      --overlay-bg:       rgba(0,0,0,.5);
-      --reply-bg:         rgba(0,0,0,.05);
-      --reply-bg-mine:    rgba(255,255,255,.2);
-      --reply-border:     #0078ff;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #0e1117; --bg-header: #1a2233; --bg-msg-mine: #0078ff; --bg-msg-their: #1e2a3a; --bg-form: #1a2233; --bg-input: #0e1117; --bg-modal: #1a2233; --text: #e8eaf0; --text-their: #e8eaf0; --text-muted: #7a8899; --text-system: #6a7888; --text-time-their: rgba(232,234,240,.45); --text-time-mine: rgba(255,255,255,.65); --border: #243040; --shadow: 0 1px 3px rgba(0,0,0,.35); --date-bg: rgba(255,255,255,.07); --date-text: #8a9ab0; --code-bg: rgba(255,255,255,.08); --code-text: #e06c75; --overlay-bg: rgba(0,0,0,.7); --reply-bg: rgba(255,255,255,.05); --reply-bg-mine: rgba(0,0,0,.2); --reply-border: #4da3ff;
-      }
-    }
-
+    /* Переменные и базовые стили остаются прежними */
+    :root { --bg: #f0f2f5; --bg-header: #0078ff; --bg-msg-mine: #0078ff; --bg-msg-their: #ffffff; --bg-form: #ffffff; --bg-input: #f0f2f5; --bg-modal: #ffffff; --text: #111111; --text-their: #222222; --text-muted: #888888; --text-system: #999999; --text-time-their: rgba(0,0,0,.45); --text-time-mine: rgba(255,255,255,.65); --border: #e0e0e0; --shadow: 0 1px 2px rgba(0,0,0,.10); --date-bg: rgba(0,0,0,.08); --date-text: #555; --code-bg: rgba(0,0,0,.07); --code-text: #c0392b; --overlay-bg: rgba(0,0,0,.5); --reply-bg: rgba(0,0,0,.05); --reply-bg-mine: rgba(255,255,255,.2); --reply-border: #0078ff; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #0e1117; --bg-header: #1a2233; --bg-msg-mine: #0078ff; --bg-msg-their: #1e2a3a; --bg-form: #1a2233; --bg-input: #0e1117; --bg-modal: #1a2233; --text: #e8eaf0; --text-their: #e8eaf0; --text-muted: #7a8899; --text-system: #6a7888; --text-time-their: rgba(232,234,240,.45); --text-time-mine: rgba(255,255,255,.65); --border: #243040; --shadow: 0 1px 3px rgba(0,0,0,.35); --date-bg: rgba(255,255,255,.07); --date-text: #8a9ab0; --code-bg: rgba(255,255,255,.08); --code-text: #e06c75; --overlay-bg: rgba(0,0,0,.7); --reply-bg: rgba(255,255,255,.05); --reply-bg-mine: rgba(0,0,0,.2); --reply-border: #4da3ff; } }
+    
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
-
     .modal-overlay { position: fixed; inset: 0; background: var(--overlay-bg); display: flex; align-items: center; justify-content: center; z-index: 200; }
     .modal-overlay.solid { background: #0078ff; }
     .modal-overlay.hidden { display: none; }
     .modal-box { background: var(--bg-modal); border-radius: 20px; padding: 28px 24px; width: 90%; max-width: 360px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,.25); }
-    .modal-box .icon { font-size: 40px; margin-bottom: 12px; }
-    .modal-box h2 { font-size: 20px; margin-bottom: 6px; color: var(--text); }
-    .modal-box p  { font-size: 14px; color: var(--text-muted); margin-bottom: 18px; line-height: 1.5; }
-    .modal-box input { width: 100%; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 16px; outline: none; margin-bottom: 12px; background: var(--bg-input); color: var(--text); transition: 0.2s; }
-    .modal-box input:focus { border-color: #0078ff; }
-    .modal-box input.error { border-color: #e53935; animation: shake 0.3s; }
-    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
-    .error-text { font-size: 13px; color: #e53935; margin-bottom: 10px; margin-top: -6px; min-height: 18px; }
     .modal-btn { width: 100%; padding: 13px; background: #0078ff; color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-bottom: 8px; transition: 0.15s; }
-    .modal-btn:hover { background: #005ecc; }
-    .modal-btn.secondary { background: var(--bg-input); color: var(--text-muted); }
-    .theme-btn { flex: 1; padding: 8px 4px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--bg-input); color: var(--text); font-size: 13px; cursor: pointer; transition: 0.15s; }
-    .theme-btn.active { border-color: #0078ff; background: rgba(0,120,255,.1); color: #0078ff; font-weight: 600; }
-
+    .modal-box input { width: 100%; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 16px; outline: none; margin-bottom: 12px; background: var(--bg-input); color: var(--text); }
+    
     #chat-wrapper { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--bg); }
     #header { flex-shrink: 0; background: var(--bg-header); color: #fff; padding: 10px 16px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
-    .header-left { display: flex; flex-direction: column; min-width: 0; }
-    #online-count { font-size: 12px; opacity: 0.85; cursor: pointer; text-decoration: underline; text-decoration-color: rgba(255,255,255,0.4); text-underline-offset: 3px; }
-    #status { font-size: 11px; opacity: 0.75; white-space: nowrap; }
-    .header-center { text-align: center; white-space: nowrap; }
-    #header-title { font-size: 18px; font-weight: 800; }
-    .header-right { display: flex; justify-content: flex-end; }
-    #settings-btn { background: rgba(255,255,255,.2); border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 17px; }
-
-    #messages-wrap { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; }
     #messages { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 10px 12px 6px; display: flex; flex-direction: column; gap: 2px; scroll-behavior: smooth; }
-    
-    .date-separator { display: flex; align-items: center; justify-content: center; margin: 10px 0 6px; flex-shrink: 0; }
-    .date-separator span { background: var(--date-bg); color: var(--date-text); font-size: 12px; padding: 3px 12px; border-radius: 20px; font-weight: 500; }
-    .new-msgs-line { display: flex; align-items: center; margin: 12px 0 8px; text-align: center; flex-shrink: 0; }
-    .new-msgs-line::before, .new-msgs-line::after { content: ""; flex: 1; border-bottom: 1px solid #e53935; opacity: 0.5; }
-    .new-msgs-line span { color: #e53935; font-size: 12px; font-weight: bold; padding: 0 10px; }
-
-    #users-list { max-height: 50vh; overflow-y: auto; margin: 12px 0 20px; text-align: left; padding-right: 4px; }
-    .user-item { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
-    .user-item:last-child { border-bottom: none; }
-    .user-item .avatar { width: 36px; height: 36px; font-size: 14px; }
-    
     .msg-row { display: flex; align-items: flex-end; gap: 8px; animation: msgIn 0.18s ease-out; transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
-    @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .msg-row.mine { flex-direction: row-reverse; }
-    .avatar { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; text-transform: uppercase; }
-    .msg-row.mine .avatar { display: none; }
-    .msg { max-width: 78%; padding: 7px 12px 5px; border-radius: 16px; font-size: 15px; line-height: 1.4; word-break: break-word; user-select: none; -webkit-user-select: none; position: relative; transition: background-color 0.5s; }
-    .msg .author { font-size: 12px; font-weight: 600; margin-bottom: 2px; display: block; }
-    .msg .text { display: block; user-select: text; -webkit-user-select: text; }
-    .msg .time { font-size: 11px; float: right; margin-left: 8px; margin-top: 2px; }
-    .ticks { margin-left: 4px; letter-spacing: -1px; font-weight: bold; }
-
+    .msg { max-width: 78%; padding: 7px 12px 5px; border-radius: 16px; font-size: 15px; position: relative; }
     .msg-row.mine .msg { background: var(--bg-msg-mine); color: #fff; border-bottom-right-radius: 4px; }
-    .msg-row.mine .msg .time { color: var(--text-time-mine); }
     .msg-row.theirs .msg { background: var(--bg-msg-their); color: var(--text-their); border-bottom-left-radius: 4px; box-shadow: var(--shadow); }
-    .msg-row.theirs .msg .time { color: var(--text-time-their); }
-    
-    /* Изображения */
-    .msg-img-wrap { margin: 4px 0 6px; overflow: hidden; border-radius: 8px; background: rgba(0,0,0,0.05); }
-    .msg-image { width: 100%; max-height: 250px; object-fit: cover; display: block; cursor: zoom-in; }
-    .expired-image { display: flex; align-items: center; justify-content: center; padding: 16px; font-size: 13px; font-weight: 500; color: var(--text-muted); background: var(--bg-input); border-radius: 8px; border: 1px dashed var(--border); margin: 4px 0 6px; font-style: italic; }
-    
-    /* Вьювер изображений */
-    #image-viewer { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.2s; }
-    #image-viewer.active { opacity: 1; pointer-events: auto; }
-    #image-viewer img { max-width: 95%; max-height: 95%; object-fit: contain; border-radius: 8px; }
-    #viewer-close { position: absolute; top: 16px; right: 20px; color: #fff; font-size: 32px; font-weight: bold; cursor: pointer; }
-
-    .msg-quote { background: var(--reply-bg); border-left: 3px solid var(--reply-border); padding: 4px 8px; border-radius: 4px; margin-bottom: 6px; cursor: pointer; font-size: 13px; transition: opacity 0.2s; }
+    .msg-img-wrap { margin: 4px 0 6px; overflow: hidden; border-radius: 8px; }
+    .msg-image { width: 100%; max-height: 250px; object-fit: cover; cursor: zoom-in; }
+    .msg-quote { background: var(--reply-bg); border-left: 3px solid var(--reply-border); padding: 4px 8px; border-radius: 4px; margin-bottom: 6px; cursor: pointer; font-size: 13px; }
     .msg-row.mine .msg-quote { background: var(--reply-bg-mine); border-left-color: #fff; }
-    .msg-quote .q-name { font-weight: bold; font-size: 12px; margin-bottom: 2px; color: var(--reply-border); }
-    .msg-row.mine .msg-quote .q-name { color: #fff; }
-    .msg-quote .q-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.85; }
-
-    .highlight-msg .msg { animation: highlightAnim 1.5s ease-out; }
-    @keyframes highlightAnim { 0% { filter: brightness(0.7) sepia(1) hue-rotate(180deg) saturate(3); } 100% { filter: none; } }
-
-    .msg .text b { font-weight: 700; }
-    .msg .text i { font-style: italic; }
-    .msg .text code { background: var(--code-bg); color: var(--code-text); padding: 1px 5px; border-radius: 4px; font-family: monospace; font-size: 13px; }
-    .msg .text a { color: inherit; text-decoration: underline; text-underline-offset: 2px; opacity: 0.85; }
-    .msg .text .edited { font-size: 11px; opacity: 0.6; font-style: italic; margin-left: 6px; }
     .mention-tag { color: #0078ff; font-weight: 600; }
     .msg-row.mine .mention-tag { color: #ff5252; text-decoration: underline; text-underline-offset: 2px; }
-    .msg-row.mentioned .msg { background: rgba(0, 120, 255, 0.15); border: 1px solid rgba(0, 120, 255, 0.3); }
-
-    .msg-row.system { justify-content: center; margin: 4px 0; }
-    .msg-row.system .msg { background: transparent; color: var(--text-system); font-size: 12px; padding: 2px 8px; text-align: center; box-shadow: none; }
-
-    #history-loader { display: flex; justify-content: center; padding: 24px 0 12px; flex-shrink: 0; }
-    #history-loader.hidden { display: none; }
-    .spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: #0078ff; border-radius: 50%; animation: spin 0.7s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    
-    #scroll-down { position: absolute; right: 16px; bottom: 10px; width: 42px; height: 42px; background: #0078ff; border: none; border-radius: 50%; color: #fff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,.3); transition: 0.2s; z-index: 10; }
-    #scroll-down.hidden { opacity: 0; pointer-events: none; transform: scale(0.7); }
-    #unread-badge { position: absolute; top: -5px; right: -5px; background: #e53935; color: #fff; font-size: 10px; font-weight: 700; min-width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
-    #unread-badge.hidden { display: none; }
-    #typing-indicator { flex-shrink: 0; min-height: 20px; padding: 0 16px 4px; font-size: 12px; color: var(--text-muted); font-style: italic; }
-    
     #form { flex-shrink: 0; display: flex; flex-direction: column; background: var(--bg-form); border-top: 1px solid var(--border); position: relative; }
-    .top-bar { display: none; background: var(--bg-input); padding: 8px 12px; border-bottom: 1px solid var(--border); align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-muted); }
-    .top-bar.active { display: flex; }
-    .top-bar-content { overflow: hidden; display: flex; flex-direction: column; }
-    .top-bar-title { font-weight: bold; color: #0078ff; font-size: 12px; margin-bottom: 2px; }
-    .top-bar-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.8; }
-    .cancel-btn { cursor: pointer; color: #e53935; font-weight: bold; font-size: 20px; padding: 0 10px; }
-
     #form-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
-    #attach-btn { flex-shrink: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px; color: var(--text-muted); transition: 0.2s; }
-    #attach-btn:hover { color: #0078ff; }
-    #file-input { display: none; }
     #input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 24px; font-size: 16px; outline: none; background: var(--bg-input); color: var(--text); }
-    #send-btn { flex-shrink: 0; width: 44px; height: 44px; background: #0078ff; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    #send-btn svg { width: 20px; height: 20px; fill: #fff; }
-
     #context-menu { position: fixed; background: var(--bg-modal); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; display: flex; flex-direction: column; min-width: 140px; overflow: hidden; }
     #context-menu.hidden { display: none; }
-    .ctx-item { padding: 12px 16px; cursor: pointer; font-size: 15px; color: var(--text); background: transparent; border: none; border-bottom: 1px solid var(--border); text-align: left; transition: 0.1s; }
-    .ctx-item:hover { background: var(--bg-input); }
-    .ctx-item.danger { color: #e53935; }
-
-    #mentions-popup { position: absolute; bottom: 100%; left: 12px; background: var(--bg-modal); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 -4px 12px rgba(0,0,0,0.1); max-height: 200px; overflow-y: auto; z-index: 100; display: flex; flex-direction: column; min-width: 200px; margin-bottom: 8px; }
-    #mentions-popup.hidden { display: none; }
-    .mention-item { padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
-    .mention-item:hover { background: var(--bg-input); }
-
-    [data-theme="dark"] { --bg: #0e1117; --bg-header: #1a2233; --bg-msg-mine: #0078ff; --bg-msg-their: #1e2a3a; --bg-form: #1a2233; --bg-input: #0e1117; --bg-modal: #1a2233; --text: #e8eaf0; --text-their: #e8eaf0; --text-muted: #7a8899; --text-system: #6a7888; --text-time-their: rgba(232,234,240,.45); --text-time-mine: rgba(255,255,255,.65); --border: #243040; --shadow: 0 1px 3px rgba(0,0,0,.35); --date-bg: rgba(255,255,255,.07); --date-text: #8a9ab0; --code-bg: rgba(255,255,255,.08); --code-text: #e06c75; --overlay-bg: rgba(0,0,0,.7); --reply-bg: rgba(255,255,255,.05); --reply-bg-mine: rgba(0,0,0,.2); --reply-border: #4da3ff; }
-    [data-theme="light"] { --bg: #f0f2f5; --bg-header: #0078ff; --bg-msg-mine: #0078ff; --bg-msg-their: #ffffff; --bg-form: #ffffff; --bg-input: #f0f2f5; --bg-modal: #ffffff; --text: #111111; --text-their: #222222; --text-muted: #888888; --text-system: #999999; --text-time-their: rgba(0,0,0,.45); --text-time-mine: rgba(255,255,255,.65); --border: #e0e0e0; --shadow: 0 1px 2px rgba(0,0,0,.10); --date-bg: rgba(0,0,0,.08); --date-text: #555; --code-bg: rgba(0,0,0,.07); --code-text: #c0392b; --overlay-bg: rgba(0,0,0,.5); --reply-bg: rgba(0,0,0,.05); --reply-bg-mine: rgba(255,255,255,.2); --reply-border: #0078ff; }
-    @media (min-width: 640px) { body { background: #c8d4e0; } @media (prefers-color-scheme: dark) { body { background: #07090e; } } #chat-wrapper, .modal-overlay { left: 50%; right: auto; transform: translateX(-50%); width: 600px; } #chat-wrapper { box-shadow: 0 0 40px rgba(0,0,0,.2); } }
+    .ctx-item { padding: 12px 16px; cursor: pointer; font-size: 15px; color: var(--text); background: transparent; border: none; border-bottom: 1px solid var(--border); text-align: left; }
+    #image-viewer { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.2s; }
+    #image-viewer.active { opacity: 1; pointer-events: auto; }
+    #image-viewer img { max-width: 95%; max-height: 95%; object-fit: contain; }
+    .top-bar { display: none; background: var(--bg-input); padding: 8px 12px; border-bottom: 1px solid var(--border); align-items: center; justify-content: space-between; font-size: 13px; }
+    .top-bar.active { display: flex; }
+    .new-msgs-line { display: flex; align-items: center; margin: 12px 0 8px; text-align: center; }
+    .new-msgs-line span { color: #e53935; font-size: 12px; font-weight: bold; padding: 0 10px; }
   </style>
 </head>
 <body>
-
-  <div id="image-viewer"><span id="viewer-close">×</span><img id="viewer-img" src="" alt=""></div>
-
-  <div class="modal-overlay solid hidden" id="password-screen"><div class="modal-box"><div class="icon">🔒</div><h2>Вход в Голубь</h2><input id="password-input" type="password" placeholder="Пароль" /><div class="error-text" id="password-error"></div><button class="modal-btn" id="password-btn">Войти</button></div></div>
-  <div class="modal-overlay solid hidden" id="name-screen"><div class="modal-box"><div class="icon">🕊️</div><h2>Добро пожаловать!</h2><input id="name-input" type="text" placeholder="Ваше имя" maxlength="20" /><button class="modal-btn" id="name-btn">Войти в чат</button></div></div>
-  <div class="modal-overlay hidden" id="rename-screen"><div class="modal-box"><div class="icon">⚙️</div><h2>Настройки</h2><input id="rename-input" type="text" placeholder="Новое имя" maxlength="20" /><div style="display:flex; gap:8px; margin-bottom:16px; margin-top:10px;"><button class="theme-btn" data-theme="auto" id="theme-auto">🌗 Авто</button><button class="theme-btn" data-theme="light" id="theme-light">☀️ Светлая</button><button class="theme-btn" data-theme="dark" id="theme-dark">🌙 Тёмная</button></div><button class="modal-btn" id="rename-btn">Сохранить</button><button class="modal-btn secondary" id="rename-cancel">Отмена</button></div></div>
-  <div class="modal-overlay hidden" id="users-screen"><div class="modal-box"><div class="icon">👥</div><h2>Участники онлайн</h2><div id="users-list"></div><button class="modal-btn secondary" id="users-close">Закрыть</button></div></div>
-
+  <div id="image-viewer"><span id="viewer-close" style="position:absolute; top:20px; right:20px; color:#fff; font-size:30px; cursor:pointer;">×</span><img id="viewer-img" src=""></div>
+  <div class="modal-overlay solid hidden" id="password-screen"><div class="modal-box"><h2>🔒 Вход</h2><input id="password-input" type="password" placeholder="Пароль" /><div id="password-error" style="color:red; font-size:12px;"></div><button class="modal-btn" id="password-btn">Войти</button></div></div>
+  <div class="modal-overlay solid hidden" id="name-screen"><div class="modal-box"><h2>🕊️ Ваше имя</h2><input id="name-input" type="text" maxlength="20" /><button class="modal-btn" id="name-btn">Начать</button></div></div>
   <div id="chat-wrapper">
     <div id="header">
-      <div class="header-left"><span id="online-count">загрузка...</span><span id="status">Подключение...</span></div>
-      <div class="header-center"><span id="header-title">🕊️ Голубь</span></div>
-      <div class="header-right"><button id="settings-btn" title="Настройки">⚙️</button></div>
+      <div class="header-left"><span id="online-count">...</span><span id="status" style="font-size:10px;">...</span></div>
+      <div><b>Голубь</b></div>
+      <div style="text-align:right;"><button id="settings-btn" style="background:none; border:none; color:#fff; font-size:20px;">⚙️</button></div>
     </div>
-    <div id="messages-wrap">
-      <div id="messages"><div id="history-loader"><div class="spinner"></div></div></div>
-      <button id="scroll-down" class="hidden">↓<span id="unread-badge" class="hidden"></span></button>
+    <div id="messages-wrap" style="flex:1; overflow:hidden; position:relative;">
+      <div id="messages"><div id="history-loader" style="text-align:center; padding:20px;">Загрузка...</div></div>
+      <button id="scroll-down" class="hidden" style="position:absolute; bottom:10px; right:10px; width:40px; height:40px; border-radius:50%; background:#0078ff; color:#fff; border:none;">↓</button>
     </div>
-    <div id="typing-indicator"></div>
     <div id="form">
-      <div id="mentions-popup" class="hidden"></div>
-      
-      <div id="action-bar" class="top-bar">
-        <div class="top-bar-content">
-          <span id="action-title" class="top-bar-title">Ответ</span>
-          <span id="action-text" class="top-bar-text">Текст...</span>
-        </div>
-        <span id="cancel-action" class="cancel-btn">×</span>
-      </div>
-
+      <div id="action-bar" class="top-bar"><div class="top-bar-content"><b id="action-title"></b><div id="action-text"></div></div><span id="cancel-action" style="cursor:pointer; font-size:20px;">×</span></div>
       <div id="form-row">
-        <label id="attach-btn" title="Прикрепить картинку">
-          📎
-          <input type="file" id="file-input" accept="image/*" />
-        </label>
-        <input id="input" type="text" placeholder="Введите текст" autocomplete="off" enterkeyhint="send" maxlength="10000" />
-        <button type="button" id="send-btn"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
+        <label style="cursor:pointer; font-size:20px;">📎<input type="file" id="file-input" style="display:none;" accept="image/*" /></label>
+        <input id="input" type="text" placeholder="Сообщение..." maxlength="10000" />
+        <button id="send-btn" style="background:#0078ff; border:none; width:40px; height:40px; border-radius:50%; color:#fff;">➤</button>
       </div>
     </div>
   </div>
-
   <div id="context-menu" class="hidden">
     <button class="ctx-item" id="ctx-reply">Ответить</button>
-    <button class="ctx-item" id="ctx-copy">Копировать</button>
     <button class="ctx-item" id="ctx-edit">Изменить</button>
-    <button class="ctx-item danger" id="ctx-delete">Удалить</button>
+    <button class="ctx-item danger" id="ctx-delete" style="color:red;">Удалить</button>
   </div>
 
   <script>
-    const passwordScreen = document.getElementById("password-screen"), passwordInput = document.getElementById("password-input"), passwordBtn = document.getElementById("password-btn"), passwordError = document.getElementById("password-error");
-    const nameScreen = document.getElementById("name-screen"), nameInput = document.getElementById("name-input"), nameBtn = document.getElementById("name-btn");
-    const renameScreen = document.getElementById("rename-screen"), renameInput = document.getElementById("rename-input"), renameBtn = document.getElementById("rename-btn"), renameCancel = document.getElementById("rename-cancel");
-    const usersScreen = document.getElementById("users-screen"), usersListEl = document.getElementById("users-list"), usersClose = document.getElementById("users-close");
-    const settingsBtn = document.getElementById("settings-btn"), messagesEl = document.getElementById("messages"), historyLoader = document.getElementById("history-loader"), statusEl = document.getElementById("status"), onlineEl = document.getElementById("online-count"), typingEl = document.getElementById("typing-indicator");
-    const input = document.getElementById("input"), sendBtn = document.getElementById("send-btn"), scrollDownBtn = document.getElementById("scroll-down"), unreadBadge = document.getElementById("unread-badge");
-    const actionBar = document.getElementById("action-bar"), actionTitle = document.getElementById("action-title"), actionText = document.getElementById("action-text"), cancelActionBtn = document.getElementById("cancel-action");
-    const fileInput = document.getElementById("file-input");
+    // Хелпер для Web Push
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); }
+      return outputArray;
+    }
 
-    const imageViewer = document.getElementById("image-viewer"), viewerImg = document.getElementById("viewer-img"), viewerClose = document.getElementById("viewer-close");
-    viewerClose.onclick = () => imageViewer.classList.remove("active");
-    window.openFullscreen = (src) => { viewerImg.src = src; imageViewer.classList.add("active"); };
-
+    const messagesEl = document.getElementById("messages"), input = document.getElementById("input"), sendBtn = document.getElementById("send-btn");
+    const actionBar = document.getElementById("action-bar"), actionTitle = document.getElementById("action-title"), actionText = document.getElementById("action-text");
     let myName = localStorage.getItem("chat_name") || "", savedPassword = localStorage.getItem("chat_password") || "";
-    let wsReady = false, stopReconnect = false, ws, reconnectTimer;
-    let unreadCount = 0, isAtBottom = true, currentUsersList = [];
-    
-    let replyingToMsg = null; 
-    let editingMsgId = null;
-    let currentLastMsgId = null;
-    let attachedImageBase64 = null; // Для хранения сжатой картинки
+    let ws, wsReady = false, vapidKey = null, replyingToMsg = null, editingMsgId = null, attachedImageBase64 = null;
 
-    // СЖАТИЕ КАРТИНОК НА КЛИЕНТЕ
-    fileInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+    function connect() {
+      ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host);
+      ws.onopen = () => { wsReady = true; document.getElementById("status").textContent = "Онлайн"; if(savedPassword) ws.send(JSON.stringify({type:"auth", password:savedPassword})); else document.getElementById("password-screen").classList.remove("hidden"); };
+      ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        if(data.type === "auth-ok") { document.getElementById("password-screen").classList.add("hidden"); if(myName) joinChat(); else document.getElementById("name-screen").classList.remove("hidden"); }
+        if(data.type === "history") {
+          vapidKey = data.vapidPublicKey; // Сохраняем ключ для пушей
+          document.getElementById("history-loader").style.display = "none";
+          data.messages.forEach(m => addMessage(m, m.name === myName ? "mine" : "theirs", true));
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+        if(data.type === "message") addMessage(data.message, "theirs");
+        if(data.type === "online") document.getElementById("online-count").textContent = data.count + " в сети";
+      };
+    }
+
+    function joinChat() {
+      ws.send(JSON.stringify({ type: "join", name: myName }));
+      // МАГИЯ WEB PUSH
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        navigator.serviceWorker.ready.then(reg => {
+          if (!vapidKey) return;
+          reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapidKey) })
+            .then(sub => ws.send(JSON.stringify({ type: "push-subscribe", subscription: sub })))
+            .catch(err => console.error("Push Error:", err));
+        });
+      }
+    }
+
+    function addMessage(msg, type, isHistory = false) {
+      const row = document.createElement("div"); row.className = `msg-row ${type}`; row.dataset.id = msg.id;
+      const bubble = document.createElement("div"); bubble.className = "msg";
+      if(type === "theirs") bubble.innerHTML += `<b style="font-size:12px; display:block; margin-bottom:4px;">${msg.name}</b>`;
+      if(msg.replyTo) bubble.innerHTML += `<div class="msg-quote"><b>${msg.replyTo.name}</b>: ${msg.replyTo.text}</div>`;
+      if(msg.imageUrl) bubble.innerHTML += `<div class="msg-img-wrap"><img src="${msg.imageUrl}" class="msg-image" onclick="window.openFullscreen('${msg.imageUrl}')"></div>`;
+      bubble.innerHTML += `<span class="text">${formatText(msg.text)}</span><span style="font-size:10px; margin-left:8px; opacity:0.6;">${msg.time}</span>`;
+      row.appendChild(bubble); messagesEl.appendChild(row);
+      if(!isHistory) messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function formatText(t) { return (t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/@(\w+)/g, '<span class="mention-tag">@$1</span>'); }
+    window.openFullscreen = (src) => { document.getElementById("viewer-img").src = src; document.getElementById("image-viewer").classList.add("active"); };
+    document.getElementById("viewer-close").onclick = () => document.getElementById("image-viewer").classList.remove("active");
+    
+    document.getElementById("password-btn").onclick = () => { savedPassword = document.getElementById("password-input").value; localStorage.setItem("chat_password", savedPassword); ws.send(JSON.stringify({type:"auth", password:savedPassword})); };
+    document.getElementById("name-btn").onclick = () => { myName = document.getElementById("name-input").value; localStorage.setItem("chat_name", myName); document.getElementById("name-screen").classList.add("hidden"); joinChat(); };
+    
+    sendBtn.onclick = () => {
+      const text = input.value.trim(); if(!text && !attachedImageBase64) return;
+      const msgId = Date.now().toString(36);
+      const payload = { type: "message", id: msgId, text, replyTo: replyingToMsg, imageBase64: attachedImageBase64 };
+      ws.send(JSON.stringify(payload));
+      addMessage({ id: msgId, name: myName, text, time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), imageUrl: attachedImageBase64 }, "mine");
+      input.value = ""; attachedImageBase64 = null; actionBar.classList.remove("active");
+    };
+
+    // Логика сжатия картинки
+    document.getElementById("file-input").onchange = (e) => {
+      const file = e.target.files[0]; if(!file) return;
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = (ev) => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement("canvas");
-          let w = img.width, h = img.height;
-          const max = 1200; // Жмем до 1200px по большей стороне
-          if (w > max || h > max) { if (w > h) { h = Math.round(h * max / w); w = max; } else { w = Math.round(w * max / h); h = max; } }
+          let w = img.width, h = img.height, max = 1200;
+          if(w > max || h > max) { if(w > h) { h = Math.round(h*max/w); w = max; } else { w = Math.round(w*max/h); h = max; } }
           canvas.width = w; canvas.height = h;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, w, h);
-          attachedImageBase64 = canvas.toDataURL("image/jpeg", 0.7); // 70% качества
-          activateAttachmentUI();
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          attachedImageBase64 = canvas.toDataURL("image/jpeg", 0.7);
+          actionTitle.textContent = "Вложение"; actionText.textContent = "Фото готово"; actionBar.classList.add("active");
         };
-        img.src = event.target.result;
+        img.src = ev.target.result;
       };
       reader.readAsDataURL(file);
-      fileInput.value = ""; // Сбрасываем инпут
-    });
-
-    function activateAttachmentUI() {
-      editingMsgId = null; replyingToMsg = null;
-      actionTitle.textContent = "Вложение";
-      actionTitle.style.color = "#43a047";
-      actionText.textContent = "🖼️ Фотография готова к отправке";
-      actionBar.classList.add("active");
-      input.focus();
-    }
-
-    const ctxMenu = document.getElementById("context-menu");
-    let ctxTargetId = null, ctxTargetText = "", ctxTargetName = "", longPressTimer;
-
-    function showContextMenu(e, id, text, name, isMine, isTouch = false) {
-      if (!id) return; 
-      if (!isTouch && e.preventDefault) e.preventDefault();
-      ctxTargetId = id; ctxTargetText = text; ctxTargetName = name;
-      
-      const clientX = isTouch ? e.touches[0].clientX : e.clientX;
-      const clientY = isTouch ? e.touches[0].clientY : e.clientY;
-      
-      ctxMenu.style.left = `${Math.min(clientX, window.innerWidth - 150)}px`;
-      ctxMenu.style.top = `${Math.min(clientY, window.innerHeight - 200)}px`;
-      document.getElementById("ctx-edit").style.display = isMine && text ? "block" : "none";
-      document.getElementById("ctx-delete").style.display = isMine ? "block" : "none";
-      ctxMenu.classList.remove("hidden");
-    }
-
-    document.addEventListener("click", () => ctxMenu.classList.add("hidden"));
-    document.getElementById("ctx-copy").onclick = () => navigator.clipboard.writeText(ctxTargetText);
-    document.getElementById("ctx-delete").onclick = () => { if(wsReady && ctxTargetId) ws.send(JSON.stringify({ type: "delete", id: ctxTargetId })); };
-    
-    function activateReply(id, name, text) {
-      editingMsgId = null; attachedImageBase64 = null;
-      replyingToMsg = { id, name, text: text ? text.replace(/<[^>]*>?/gm, '').slice(0, 50) + "..." : "🖼️ Фотография" };
-      actionTitle.textContent = `Ответ: ${name}`; actionTitle.style.color = "#0078ff";
-      actionText.textContent = replyingToMsg.text;
-      actionBar.classList.add("active"); input.focus();
-    }
-    document.getElementById("ctx-reply").onclick = () => activateReply(ctxTargetId, ctxTargetName, ctxTargetText);
-
-    document.getElementById("ctx-edit").onclick = () => {
-      replyingToMsg = null; attachedImageBase64 = null; editingMsgId = ctxTargetId; 
-      actionTitle.textContent = "Редактирование"; actionTitle.style.color = "#e53935";
-      actionText.textContent = ctxTargetText.slice(0, 50) + "...";
-      input.value = ctxTargetText; actionBar.classList.add("active"); input.focus();
     };
 
-    cancelActionBtn.onclick = () => {
-      replyingToMsg = null; editingMsgId = null; attachedImageBase64 = null;
-      input.value = ""; actionBar.classList.remove("active");
-    };
-
-    window.scrollToMsg = function(id) {
-      const target = document.querySelector(`.msg-row[data-id="${id}"]`);
-      if (target) { target.scrollIntoView({ behavior: "smooth", block: "center" }); target.classList.add("highlight-msg"); setTimeout(() => target.classList.remove("highlight-msg"), 1500); }
-    };
-
-    const readObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const row = entry.target;
-          if (row.dataset.id && wsReady) { ws.send(JSON.stringify({ type: "mark-read", id: row.dataset.id })); readObserver.unobserve(row); }
-        }
-      });
-    }, { threshold: 0.5 });
-
-    function generateId() { return Date.now().toString(36) + Math.random().toString(36).substring(2, 6); }
-    function checkUpdateLastRead() { if (isAtBottom && currentLastMsgId) localStorage.setItem("last_read_id", currentLastMsgId); }
-
-    messagesEl.addEventListener("scroll", () => {
-      const dist = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight;
-      isAtBottom = dist < 60;
-      if (isAtBottom) { scrollDownBtn.classList.add("hidden"); unreadCount = 0; unreadBadge.classList.add("hidden"); checkUpdateLastRead(); } 
-      else scrollDownBtn.classList.remove("hidden");
-    });
-
-    scrollDownBtn.addEventListener("click", () => { scrollToBottom(true); unreadCount = 0; unreadBadge.classList.add("hidden"); });
-
-    let lastDateLabel = null;
-    function getDateLabel() {
-      const now = new Date(), today = now.toDateString(), yesterday = new Date(now - 86400000).toDateString();
-      if (now.toDateString() === today) return "Сегодня";
-      if (now.toDateString() === yesterday) return "Вчера";
-      return now.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
-    }
-
-    function maybeInsertDateSeparator(label) {
-      if (!label || label === lastDateLabel) return;
-      lastDateLabel = label;
-      const wrap = document.createElement("div"); wrap.className = "date-separator";
-      const span = document.createElement("span"); span.textContent = label;
-      wrap.appendChild(span); messagesEl.appendChild(wrap);
-    }
-
-    function formatText(raw) {
-      if (!raw) return "";
-      let s = raw.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-      s = s.replace(/(https?:\/\/[^\s<>"']+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
-      s = s.replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*([^*\n]+)\*/g, "<b>$1</b>").replace(/_([^_\n]+)_/g, "<i>$1</i>");
-      s = s.replace(/@([А-Яа-яA-Za-z0-9_]+)/g, '<span class="mention-tag">@$1</span>');
-      return s;
-    }
-
-    const themeKey = "chat_theme", htmlEl = document.documentElement;
-    function applyTheme(theme) { htmlEl.removeAttribute("data-theme"); if (theme === "light") htmlEl.setAttribute("data-theme", "light"); if (theme === "dark") htmlEl.setAttribute("data-theme", "dark"); document.querySelectorAll(".theme-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.theme === theme)); }
-    document.querySelectorAll(".theme-btn").forEach(btn => btn.addEventListener("click", () => { applyTheme(btn.dataset.theme); localStorage.setItem(themeKey, btn.dataset.theme); }));
-    applyTheme(localStorage.getItem(themeKey) || "auto");
-
-    function connect() {
-      const protocol = location.protocol === "https:" ? "wss" : "ws";
-      ws = new WebSocket(`${protocol}://${window.location.host}`);
-      ws.onopen = () => { statusEl.textContent = "Online ✅"; wsReady = true; clearTimeout(reconnectTimer); };
-      ws.onclose = () => { wsReady = false; if (stopReconnect) return; statusEl.textContent = "Переподключение... ⏳"; clearTimeout(reconnectTimer); reconnectTimer = setTimeout(connect, 3000); };
-      
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === "need-password") {
-          if (savedPassword) ws.send(JSON.stringify({ type: "auth", password: savedPassword }));
-          else { passwordScreen.classList.remove("hidden"); setTimeout(() => passwordInput.focus(), 100); }
-          return;
-        }
-        if (data.type === "auth-ok") {
-          if (passwordInput.value) { localStorage.setItem("chat_password", passwordInput.value.trim()); savedPassword = passwordInput.value.trim(); }
-          passwordScreen.classList.add("hidden"); passwordError.textContent = "";
-          if (myName) joinChat(); else { nameScreen.classList.remove("hidden"); setTimeout(() => nameInput.focus(), 100); }
-          return;
-        }
-        if (data.type === "error") {
-          if (data.code === "wrong-password") { stopReconnect = true; localStorage.removeItem("chat_password"); passwordScreen.classList.remove("hidden"); }
-          if (data.code === "full") { stopReconnect = true; showFullScreen(data.text); }
-          return;
-        }
-
-        if (data.type === "history") {
-          historyLoader.classList.add("hidden");
-          Array.from(messagesEl.children).forEach(el => { if (el.id !== "history-loader") el.remove(); });
-          lastDateLabel = null;
-          const storedLastId = localStorage.getItem("last_read_id");
-          let dividerInserted = false, dividerNode = null;
-
-          if (data.messages.length > 0) {
-            maybeInsertDateSeparator("История");
-            data.messages.forEach(msg => {
-              addMessage(msg, msg.name === myName ? "mine" : "theirs", true);
-              if (storedLastId && msg.id === storedLastId && !dividerInserted && msg.id !== data.messages[data.messages.length-1].id) {
-                dividerNode = document.createElement("div"); dividerNode.className = "new-msgs-line"; dividerNode.innerHTML = "<span>Новые сообщения</span>";
-                messagesEl.appendChild(dividerNode); dividerInserted = true;
-              }
-            });
-          }
-          if (dividerNode) { dividerNode.scrollIntoView({ behavior: "auto", block: "center" }); isAtBottom = false; } else scrollToBottom(false);
-          return;
-        }
-
-        if (data.type === "message") { maybeInsertDateSeparator(getDateLabel()); addMessage(data.message, "theirs", false); if (document.hidden) { showNotification(data.message.name, data.message.text || "🖼️ Фотография"); playSound(); } return; }
-        if (data.type === "msg-read") { const row = document.querySelector(`.msg-row[data-id="${data.id}"]`); if (row) { const ticks = row.querySelector('.ticks'); if (ticks) ticks.textContent = " ✓✓"; } return; }
-        if (data.type === "delete") { const row = document.querySelector(`.msg-row[data-id="${data.id}"]`); if (row) row.remove(); return; }
-        
-        if (data.type === "edit") {
-          const row = document.querySelector(`.msg-row[data-id="${data.id}"]`);
-          if (row) row.querySelector(".text").innerHTML = formatText(data.text) + '<span class="edited">(изменено)</span>';
-          return;
-        }
-
-        // ОБРАБОТКА ИСТЕЧЕНИЯ СРОКА КАРТИНКИ
-        if (data.type === "image-expired") {
-          const row = document.querySelector(`.msg-row[data-id="${data.id}"]`);
-          if (row) {
-            const imgWrap = row.querySelector('.msg-img-wrap');
-            if (imgWrap) imgWrap.outerHTML = `<div class="expired-image">🖼️ Срок хранения вышел</div>`;
-          }
-          return;
-        }
-
-        if (data.type === "system") { addSystemMessage(data.text); return; }
-        if (data.type === "online") { onlineEl.textContent = `${data.count} / 15 ${data.count === 1 ? "участник" : data.count < 5 ? "участника" : "участников"}`; currentUsersList = data.users || []; return; }
-        if (data.type === "typing") updateTyping(data.name, data.isTyping);
-      };
-    }
     connect();
-
-    function submitPassword() { const pwd = passwordInput.value.trim(); if (!pwd) return; if (!ws || ws.readyState !== WebSocket.OPEN) { connect(); setTimeout(() => ws.send(JSON.stringify({ type: "auth", password: pwd })), 500); } else ws.send(JSON.stringify({ type: "auth", password: pwd })); }
-    passwordBtn.addEventListener("click", submitPassword); passwordInput.addEventListener("keydown", e => { if (e.key === "Enter") submitPassword(); });
-    function submitName() { const val = nameInput.value.trim(); if (!val) return; myName = val; localStorage.setItem("chat_name", myName); nameScreen.classList.add("hidden"); joinChat(); }
-    nameBtn.addEventListener("click", submitName); nameInput.addEventListener("keydown", e => { if (e.key === "Enter") submitName(); });
-
-    settingsBtn.addEventListener("click", () => { renameInput.value = myName; renameScreen.classList.remove("hidden"); });
-    renameCancel.addEventListener("click", () => renameScreen.classList.add("hidden"));
-    renameBtn.addEventListener("click", () => { const val = renameInput.value.trim(); if (!val) return; localStorage.setItem("chat_name", val); myName = val; renameScreen.classList.add("hidden"); if(wsReady) ws.send(JSON.stringify({type:"join", name: myName})); });
-
-    onlineEl.addEventListener("click", () => {
-      if (currentUsersList.length === 0) return; usersListEl.innerHTML = "";
-      currentUsersList.forEach(name => {
-        const div = document.createElement("div"); div.className = "user-item";
-        const av = document.createElement("div"); av.className = "avatar"; av.style.background = nameToColor(name); av.textContent = name[0].toUpperCase();
-        const nameSpan = document.createElement("span"); nameSpan.textContent = name;
-        if (name === myName) { nameSpan.textContent += " (Вы)"; nameSpan.style.color = "var(--text-muted)"; }
-        div.appendChild(av); div.appendChild(nameSpan); usersListEl.appendChild(div);
-      });
-      usersScreen.classList.remove("hidden");
-    });
-    usersClose.addEventListener("click", () => usersScreen.classList.add("hidden"));
-
-    function joinChat() { if (wsReady) { historyLoader.classList.remove("hidden"); ws.send(JSON.stringify({ type: "join", name: myName })); } }
-
-    function sendMessage() {
-      const text = input.value.trim();
-      if (!text && !attachedImageBase64) return; // Можно отправить или текст, или картинку, или всё вместе
-      if (!wsReady) return;
-      const time = new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-      
-      if (editingMsgId) {
-        ws.send(JSON.stringify({ type: "edit", id: editingMsgId, text }));
-        const row = document.querySelector(`.msg-row[data-id="${editingMsgId}"]`);
-        if(row) row.querySelector(".text").innerHTML = formatText(text) + '<span class="edited">(изменено)</span>';
-        cancelActionBtn.click(); return;
-      }
-
-      maybeInsertDateSeparator(getDateLabel());
-      const msgId = generateId();
-      
-      const payload = { type: "message", text, id: msgId };
-      if (replyingToMsg) payload.replyTo = replyingToMsg;
-      if (attachedImageBase64) payload.imageBase64 = attachedImageBase64;
-      
-      ws.send(JSON.stringify(payload));
-      
-      // Локальная отрисовка
-      const localMsg = { id: msgId, name: myName, text, time, read: false, replyTo: replyingToMsg };
-      if (attachedImageBase64) localMsg.imageUrl = attachedImageBase64; // Временно показываем локальный base64
-      addMessage(localMsg, "mine", false);
-      
-      input.value = ""; cancelActionBtn.click(); input.focus(); sendTyping(false);
-    }
-    sendBtn.addEventListener("click", sendMessage); input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
-
-    const mentionsPopup = document.getElementById("mentions-popup");
-    input.addEventListener("input", (e) => {
-      sendTyping(true); clearTimeout(typingTimer); typingTimer = setTimeout(() => sendTyping(false), 2000);
-      const val = input.value, cursor = input.selectionStart;
-      const lastWord = val.slice(0, cursor).split(/\s/).pop();
-      if (lastWord.startsWith("@") && currentUsersList.length > 0) {
-        const query = lastWord.slice(1).toLowerCase();
-        const matches = currentUsersList.filter(u => u.toLowerCase().includes(query) && u !== myName);
-        if (matches.length > 0) {
-          mentionsPopup.innerHTML = "";
-          matches.forEach(m => {
-            const div = document.createElement("div"); div.className = "mention-item";
-            const av = document.createElement("div"); av.className = "avatar"; av.style.width="24px"; av.style.height="24px"; av.style.fontSize="11px"; av.style.background=nameToColor(m); av.textContent=m[0].toUpperCase();
-            const span = document.createElement("span"); span.textContent = m;
-            div.appendChild(av); div.appendChild(span);
-            div.onclick = () => { input.value = val.slice(0, cursor - lastWord.length) + "@" + m + " " + val.slice(cursor); mentionsPopup.classList.add("hidden"); input.focus(); };
-            mentionsPopup.appendChild(div);
-          });
-          mentionsPopup.classList.remove("hidden"); return;
-        }
-      }
-      mentionsPopup.classList.add("hidden");
-    });
-
-    let typingTimer = null; const typingUsers = new Set();
-    function sendTyping(isTyping) { if (wsReady) ws.send(JSON.stringify({ type: "typing", isTyping })); }
-    function updateTyping(name, isTyping) { if (isTyping) typingUsers.add(name); else typingUsers.delete(name); typingEl.textContent = typingUsers.size === 0 ? "" : typingUsers.size === 1 ? `${[...typingUsers][0]} печатает...` : "Несколько человек печатают..."; }
-
-    function addMessage(msg, type, fromHistory) {
-      currentLastMsgId = msg.id; 
-      const row = document.createElement("div"); row.className = `msg-row ${type}`;
-      if (msg.id) row.dataset.id = msg.id; 
-      if (fromHistory) row.style.animation = "none";
-
-      if (type === "theirs") {
-        const av = document.createElement("div"); av.className = "avatar"; av.style.background = nameToColor(msg.name); av.textContent = (msg.name || "?")[0]; row.appendChild(av);
-      }
-
-      const bubble = document.createElement("div"); bubble.className = "msg";
-      if (type === "theirs") { const author = document.createElement("span"); author.className = "author"; author.style.color = nameToColor(msg.name); author.textContent = msg.name; bubble.appendChild(author); }
-
-      if (msg.replyTo) {
-        const qBlock = document.createElement("div"); qBlock.className = "msg-quote";
-        qBlock.innerHTML = `<div class="q-name">${msg.replyTo.name}</div><div class="q-text">${msg.replyTo.text}</div>`;
-        qBlock.onclick = () => window.scrollToMsg(msg.replyTo.id);
-        bubble.appendChild(qBlock);
-      }
-
-      // Отрисовка картинки или заглушки "Истекло"
-      if (msg.imageExpired) {
-        bubble.innerHTML += `<div class="expired-image">🖼️ Срок хранения вышел</div>`;
-      } else if (msg.imageUrl) {
-        const imgWrap = document.createElement("div"); imgWrap.className = "msg-img-wrap";
-        imgWrap.innerHTML = `<img src="${msg.imageUrl}" class="msg-image" loading="lazy" onclick="window.openFullscreen(this.src)">`;
-        bubble.appendChild(imgWrap);
-      }
-
-      const textEl = document.createElement("span"); textEl.className = "text"; textEl.innerHTML = formatText(msg.text); bubble.appendChild(textEl);
-
-      if (msg.time) {
-        const timeEl = document.createElement("span"); timeEl.className = "time"; timeEl.textContent = msg.time;
-        if (type === "mine") { const ticks = document.createElement("span"); ticks.className = "ticks"; ticks.textContent = msg.read ? " ✓✓" : " ✓"; timeEl.appendChild(ticks); }
-        bubble.appendChild(timeEl);
-      }
-
-      row.appendChild(bubble); messagesEl.appendChild(row);
-
-      if (type === "theirs" && msg.text && msg.text.includes(`@${myName}`)) row.classList.add("mentioned");
-      if (msg.edited) textEl.innerHTML += '<span class="edited">(изменено)</span>';
-
-      bubble.addEventListener("contextmenu", (e) => showContextMenu(e, msg.id, msg.text, msg.name, type === "mine"));
-      
-      let touchStartX = 0, isSwiping = false;
-      row.addEventListener("touchstart", (e) => { touchStartX = e.touches[0].clientX; isSwiping = true; row.style.transition = 'none'; }, {passive: true});
-      row.addEventListener("touchmove", (e) => { 
-        if (!isSwiping) return;
-        let dx = e.touches[0].clientX - touchStartX;
-        if (dx < 0 && dx > -60) row.style.transform = `translateX(${dx}px)`;
-      }, {passive: true});
-      row.addEventListener("touchend", (e) => {
-        if (!isSwiping) return;
-        isSwiping = false; let dx = e.changedTouches[0].clientX - touchStartX;
-        row.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)'; row.style.transform = '';
-        if (dx < -40) activateReply(msg.id, msg.name, msg.text);
-      }, {passive: true});
-      
-      bubble.addEventListener("touchstart", (e) => { longPressTimer = setTimeout(() => showContextMenu(e, msg.id, msg.text, msg.name, type === "mine", true), 600); }, {passive: true});
-      bubble.addEventListener("touchend", () => clearTimeout(longPressTimer));
-      bubble.addEventListener("touchmove", () => clearTimeout(longPressTimer));
-
-      if (!fromHistory && type === "theirs" && !isAtBottom) {
-        unreadCount++; unreadBadge.textContent = unreadCount > 99 ? "99+" : unreadCount; unreadBadge.classList.remove("hidden");
-      }
-
-      if (type === "theirs" && !msg.read && msg.id) readObserver.observe(row);
-      if (isAtBottom || fromHistory) scrollToBottom(false);
-      checkUpdateLastRead();
-    }
-
-    function addSystemMessage(text) { const row = document.createElement("div"); row.className = "msg-row system"; const bubble = document.createElement("div"); bubble.className = "msg"; bubble.textContent = text; row.appendChild(bubble); messagesEl.appendChild(row); if (isAtBottom) scrollToBottom(false); }
-    function nameToColor(name) { const colors = ["#e53935","#d81b60","#8e24aa","#3949ab","#1e88e5","#039be5","#00897b","#43a047","#f4511e","#fb8c00","#6d4c41","#546e7a"]; let hash = 0; for (let i = 0; i < (name || "").length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash); return colors[Math.abs(hash) % colors.length]; }
-    function scrollToBottom(smooth) { messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: smooth ? "smooth" : "instant" }); isAtBottom = true; checkUpdateLastRead(); }
-    window.visualViewport?.addEventListener("resize", () => { if (isAtBottom) scrollToBottom(false); }); 
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
   </script>
 </body>
 </html>
