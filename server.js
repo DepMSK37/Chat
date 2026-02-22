@@ -5,7 +5,7 @@ const { WebSocketServer } = require("ws");
 const webpush = require("web-push");
 
 // =====================================================
-// НАСТРОЙКИ И КЛЮЧИ
+// НАСТРОЙКИ И КЛЮЧИ (Берутся из вашей группы golub-secrets)
 // =====================================================
 const PASSWORD        = process.env.PASSWORD || null;
 const VAPID_PUBLIC    = process.env.VAPID_PUBLIC_KEY;
@@ -17,19 +17,16 @@ const TTL_6_HOURS     = 6 * 60 * 60 * 1000;
 const HISTORY_FILE    = path.join(__dirname, "history.json");
 const SUBS_FILE       = path.join(__dirname, "subs.json");
 const UPLOADS_DIR     = path.join(__dirname, "uploads");
-const SAVE_INTERVAL   = 10 * 1000; 
 
-// Настройка Web Push
+// Инициализация Web Push
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   webpush.setVapidDetails("mailto:admin@rusteryerka.ru", VAPID_PUBLIC, VAPID_PRIVATE);
 }
 
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-}
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 // =====================================================
-// ПОДПИСКИ И ИСТОРИЯ
+// БАЗА ПОДПИСОК И ИСТОРИЯ
 // =====================================================
 let subscriptions = {};
 try {
@@ -46,9 +43,9 @@ function loadHistory() {
 }
 function saveHistory() { fs.writeFileSync(HISTORY_FILE, JSON.stringify(history), "utf-8"); }
 loadHistory();
-setInterval(saveHistory, SAVE_INTERVAL);
+setInterval(saveHistory, 10000);
 
-// Чистильщик картинок по TTL
+// Чистильщик картинок (6 часов)
 setInterval(() => {
   const now = Date.now();
   let needSave = false;
@@ -58,9 +55,7 @@ setInterval(() => {
         const filepath = path.join(UPLOADS_DIR, path.basename(msg.imageUrl));
         if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
       } catch (e) {}
-      msg.imageExpired = true;
-      delete msg.imageUrl;
-      needSave = true;
+      msg.imageExpired = true; delete msg.imageUrl; needSave = true;
       broadcast({ type: "image-expired", id: msg.id });
     }
   });
@@ -68,28 +63,23 @@ setInterval(() => {
 }, 15 * 60 * 1000);
 
 // =====================================================
-// HTTP-сервер
+// HTTP СЕРВЕР
 // =====================================================
 const MIME = { ".html": "text/html", ".js": "application/javascript", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp" };
-
 const httpServer = http.createServer((req, res) => {
   if (req.url === "/ping") return res.end("pong");
   const url = req.url === "/" ? "/index.html" : req.url;
   const filePath = path.join(__dirname, url);
   const ext = path.extname(filePath).toLowerCase();
-  
   fs.readFile(filePath, (err, data) => {
     if (err) { res.writeHead(404); return res.end("Not found"); }
-    res.writeHead(200, { 
-      "Content-Type": MIME[ext] || "application/octet-stream",
-      "Cache-Control": ext.match(/jpg|jpeg|png|webp/) ? "public, max-age=86400" : "no-cache" 
-    });
+    res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": ext.match(/jpg|jpeg|png|webp/) ? "public, max-age=86400" : "no-cache" });
     res.end(data);
   });
 });
 
 // =====================================================
-// WebSocket и Push
+// WebSocket и Push-рассылка
 // =====================================================
 const wss = new WebSocketServer({ server: httpServer });
 const clients = new Map();
@@ -119,25 +109,19 @@ wss.on("connection", (ws) => {
   ws.on('pong', () => { ws.isAlive = true; });
   clients.set(ws, { name: "Аноним", auth: false });
 
-  if (!PASSWORD) {
-    clients.get(ws).auth = true; 
-    send(ws, { type: "auth-ok" });
-  } else {
-    send(ws, { type: "need-password" });
-  }
+  if (!PASSWORD) { clients.get(ws).auth = true; send(ws, { type: "auth-ok" }); } 
+  else send(ws, { type: "need-password" });
 
   ws.on("message", (data) => {
     let parsed;
     try { parsed = JSON.parse(data.toString()); } catch { return; }
     const clientInfo = clients.get(ws);
+    if (!clientInfo) return;
 
     if (parsed.type === "auth") {
       if (!PASSWORD || parsed.password === PASSWORD) {
         clientInfo.auth = true; send(ws, { type: "auth-ok" });
-      } else {
-        send(ws, { type: "error", code: "wrong-password", text: "Неверный пароль." });
-        ws.close();
-      }
+      } else { send(ws, { type: "error", code: "wrong-password" }); ws.close(); }
       return;
     }
 
@@ -166,40 +150,24 @@ wss.on("connection", (ws) => {
     if (parsed.type === "delete") {
       const idx = history.findIndex(m => m.id === parsed.id);
       if (idx !== -1 && history[idx].name === clientInfo.name) {
-        if (history[idx].imageUrl) {
-          try { fs.unlinkSync(path.join(UPLOADS_DIR, path.basename(history[idx].imageUrl))); } catch(e){}
-        }
+        if (history[idx].imageUrl) try { fs.unlinkSync(path.join(UPLOADS_DIR, path.basename(history[idx].imageUrl))); } catch(e){}
         history.splice(idx, 1); saveHistory(); broadcast({ type: "delete", id: parsed.id });
-      }
-      return;
-    }
-
-    if (parsed.type === "edit") {
-      const msg = history.find(m => m.id === parsed.id);
-      if (msg && msg.name === clientInfo.name) {
-        msg.text = (parsed.text || "").slice(0, 10000).trim();
-        msg.edited = true; saveHistory(); broadcast({ type: "edit", id: parsed.id, text: msg.text });
       }
       return;
     }
 
     if (parsed.type === "message") {
       const text = (parsed.text || "").slice(0, 10000).trim();
-      let imageUrl = null;
-      let imageTimestamp = null;
+      let imageUrl = null, imageTimestamp = null;
 
-      if (parsed.imageBase64 && typeof parsed.imageBase64 === "string") {
+      if (parsed.imageBase64) {
         const matches = parsed.imageBase64.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/);
-        if (matches && matches.length === 3) {
-          const ext = matches[1] === "jpeg" ? "jpg" : matches[1];
-          const imgData = Buffer.from(matches[2], "base64");
-          const filename = `${Date.now()}-${Math.random().toString(36).substring(2,8)}.${ext}`;
-          fs.writeFileSync(path.join(UPLOADS_DIR, filename), imgData);
-          imageUrl = `/uploads/${filename}`;
-          imageTimestamp = Date.now();
+        if (matches) {
+          const filename = `${Date.now()}-${Math.random().toString(36).substring(2,8)}.jpg`;
+          fs.writeFileSync(path.join(UPLOADS_DIR, filename), Buffer.from(matches[2], "base64"));
+          imageUrl = `/uploads/${filename}`; imageTimestamp = Date.now();
         }
       }
-
       if (!text && !imageUrl) return;
 
       const message = {
@@ -207,10 +175,7 @@ wss.on("connection", (ws) => {
         name: clientInfo.name,
         text,
         time: new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
-        read: false,
-        replyTo: parsed.replyTo || null,
-        imageUrl,
-        imageTimestamp
+        read: false, replyTo: parsed.replyTo || null, imageUrl, imageTimestamp
       };
 
       history.push(message);
@@ -227,6 +192,5 @@ wss.on("connection", (ws) => {
 });
 
 function send(ws, payload) { if (ws.readyState === 1) ws.send(JSON.stringify(payload)); }
-
-const PORT = process.env.PORT || 3000;
-httpServer.listen(PORT, () => console.log(`Сервер запущен на порту ${PORT}`));
+const pingInterval = setInterval(() => { wss.clients.forEach((ws) => { if (ws.isAlive === false) return ws.terminate(); ws.isAlive = false; ws.ping(); }); }, 30000);
+httpServer.listen(process.env.PORT || 3000, () => console.log("Сервер запущен"));
