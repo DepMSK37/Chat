@@ -1,9 +1,21 @@
 {
-  "name": "Чат",
-  "short_name": "Чат",
+  "name": "Голубь",
+  "short_name": "Голубь",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0078ff",
+  "background_color": "#0e1117",
   "theme_color": "#0078ff",
-  "description": "Простой чат"
+  "description": "Секретный мессенджер",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
