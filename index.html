@@ -7,20 +7,71 @@
   <meta name="theme-color" content="#0078ff" />
   <title>Голубь</title>
   <style>
+    /* ===== ПЕРЕМЕННЫЕ — светлая тема ===== */
+    :root {
+      --bg:               #f0f2f5;
+      --bg-header:        #0078ff;
+      --bg-msg-mine:      #0078ff;
+      --bg-msg-their:     #ffffff;
+      --bg-form:          #ffffff;
+      --bg-input:         #f0f2f5;
+      --bg-modal:         #ffffff;
+      --text:             #111111;
+      --text-their:       #222222;
+      --text-muted:       #888888;
+      --text-system:      #999999;
+      --text-time-their:  rgba(0,0,0,.45);
+      --text-time-mine:   rgba(255,255,255,.65);
+      --border:           #e0e0e0;
+      --shadow:           0 1px 2px rgba(0,0,0,.10);
+      --date-bg:          rgba(0,0,0,.08);
+      --date-text:        #555;
+      --code-bg:          rgba(0,0,0,.07);
+      --code-text:        #c0392b;
+      --overlay-bg:       rgba(0,0,0,.5);
+    }
+
+    /* ===== ТЁМНАЯ ТЕМА — авто по системе ===== */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:               #0e1117;
+        --bg-header:        #1a2233;
+        --bg-msg-mine:      #0078ff;
+        --bg-msg-their:     #1e2a3a;
+        --bg-form:          #1a2233;
+        --bg-input:         #0e1117;
+        --bg-modal:         #1a2233;
+        --text:             #e8eaf0;
+        --text-their:       #e8eaf0;
+        --text-muted:       #7a8899;
+        --text-system:      #6a7888;
+        --text-time-their:  rgba(232,234,240,.45);
+        --text-time-mine:   rgba(255,255,255,.65);
+        --border:           #243040;
+        --shadow:           0 1px 3px rgba(0,0,0,.35);
+        --date-bg:          rgba(255,255,255,.07);
+        --date-text:        #8a9ab0;
+        --code-bg:          rgba(255,255,255,.08);
+        --code-text:        #e06c75;
+        --overlay-bg:       rgba(0,0,0,.7);
+      }
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
       height: 100%;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f0f0f0;
+      background: var(--bg);
+      color: var(--text);
     }
 
     /* ===== Модальные окна ===== */
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,.5);
+      background: var(--overlay-bg);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -31,7 +82,7 @@
     .modal-overlay.hidden { display: none; }
 
     .modal-box {
-      background: #fff;
+      background: var(--bg-modal);
       border-radius: 20px;
       padding: 28px 24px;
       width: 90%;
@@ -41,17 +92,19 @@
     }
 
     .modal-box .icon { font-size: 40px; margin-bottom: 12px; }
-    .modal-box h2 { font-size: 20px; margin-bottom: 6px; color: #111; }
-    .modal-box p  { font-size: 14px; color: #888; margin-bottom: 18px; line-height: 1.5; }
+    .modal-box h2 { font-size: 20px; margin-bottom: 6px; color: var(--text); }
+    .modal-box p  { font-size: 14px; color: var(--text-muted); margin-bottom: 18px; line-height: 1.5; }
 
     .modal-box input {
       width: 100%;
       padding: 12px 16px;
-      border: 1.5px solid #ddd;
+      border: 1.5px solid var(--border);
       border-radius: 12px;
       font-size: 16px;
       outline: none;
       margin-bottom: 12px;
+      background: var(--bg-input);
+      color: var(--text);
       transition: border-color 0.2s;
     }
 
@@ -86,23 +139,24 @@
       transition: background 0.15s;
     }
 
-    .modal-btn:hover { background: #005ecc; }
+    .modal-btn:hover    { background: #005ecc; }
     .modal-btn:disabled { background: #aaa; cursor: default; }
-    .modal-btn.secondary { background: #f0f0f0; color: #555; }
-    .modal-btn.secondary:hover { background: #e0e0e0; }
+    .modal-btn.secondary { background: var(--bg-input); color: var(--text-muted); }
+    .modal-btn.secondary:hover { filter: brightness(.92); }
 
-    /* ===== Основной чат ===== */
+    /* ===== Чат ===== */
     #chat-wrapper {
       position: fixed;
       inset: 0;
       display: flex;
       flex-direction: column;
-      background: #f0f0f0;
+      background: var(--bg);
     }
 
+    /* --- Шапка --- */
     #header {
       flex-shrink: 0;
-      background: #0078ff;
+      background: var(--bg-header);
       color: #fff;
       padding: 10px 16px;
       display: grid;
@@ -111,52 +165,27 @@
       gap: 8px;
     }
 
-    .header-left {
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-    }
+    .header-left { display: flex; flex-direction: column; min-width: 0; }
 
     #online-count {
-      font-size: 12px;
-      opacity: 0.85;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 12px; opacity: 0.85;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
-    #status {
-      font-size: 11px;
-      opacity: 0.75;
-      white-space: nowrap;
-    }
+    #status { font-size: 11px; opacity: 0.75; white-space: nowrap; }
 
-    .header-center {
-      text-align: center;
-      white-space: nowrap;
-    }
+    .header-center { text-align: center; white-space: nowrap; }
 
-    #header-title {
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-    }
+    #header-title { font-size: 18px; font-weight: 800; letter-spacing: 0.5px; }
 
-    .header-right {
-      display: flex;
-      justify-content: flex-end;
-    }
+    .header-right { display: flex; justify-content: flex-end; }
 
     #settings-btn {
       background: rgba(255,255,255,.2);
-      border: none;
-      border-radius: 50%;
-      width: 32px;
-      height: 32px;
+      border: none; border-radius: 50%;
+      width: 32px; height: 32px;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       font-size: 17px;
       transition: background 0.15s;
       flex-shrink: 0;
@@ -164,36 +193,72 @@
 
     #settings-btn:hover { background: rgba(255,255,255,.35); }
 
-    /* --- Сообщения --- */
+    /* --- Обёртка сообщений (для кнопки ↓) --- */
+    #messages-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
     #messages {
       flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 10px 12px;
+      padding: 10px 12px 6px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
     }
 
-    .msg-row { display: flex; align-items: flex-end; gap: 8px; }
-    .msg-row.mine { flex-direction: row-reverse; }
-
-    .avatar {
-      flex-shrink: 0;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
+    /* --- Разделитель даты --- */
+    .date-separator {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
-      font-weight: 700;
+      margin: 10px 0 6px;
+      flex-shrink: 0;
+    }
+
+    .date-separator span {
+      background: var(--date-bg);
+      color: var(--date-text);
+      font-size: 12px;
+      padding: 3px 12px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    /* --- Строки --- */
+    .msg-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      animation: msgIn 0.18s ease-out;
+    }
+
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-row.mine { flex-direction: row-reverse; }
+
+    /* Аватар */
+    .avatar {
+      flex-shrink: 0;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700;
       color: #fff;
       text-transform: uppercase;
     }
 
     .msg-row.mine .avatar { display: none; }
 
+    /* Пузырь */
     .msg {
       max-width: 72%;
       padding: 7px 12px 5px;
@@ -205,21 +270,110 @@
 
     .msg .author { font-size: 12px; font-weight: 600; margin-bottom: 2px; display: block; }
     .msg .text   { display: block; }
-    .msg .time   { font-size: 11px; opacity: 0.6; float: right; margin-left: 8px; margin-top: 2px; }
+    .msg .time   { font-size: 11px; float: right; margin-left: 8px; margin-top: 2px; }
 
-    .msg-row.mine   .msg { background: #0078ff; color: #fff; border-bottom-right-radius: 4px; }
-    .msg-row.mine   .msg .author { display: none; }
-    .msg-row.theirs .msg { background: #fff; color: #222; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+    .msg-row.mine .msg {
+      background: var(--bg-msg-mine); color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .msg-row.mine .msg .author { display: none; }
+    .msg-row.mine .msg .time   { color: var(--text-time-mine); }
 
+    .msg-row.theirs .msg {
+      background: var(--bg-msg-their); color: var(--text-their);
+      border-bottom-left-radius: 4px;
+      box-shadow: var(--shadow);
+    }
+    .msg-row.theirs .msg .time { color: var(--text-time-their); }
+
+    /* Форматирование текста */
+    .msg .text b    { font-weight: 700; }
+    .msg .text i    { font-style: italic; }
+    .msg .text code {
+      background: var(--code-bg);
+      color: var(--code-text);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: "SF Mono", "Fira Mono", monospace;
+      font-size: 13px;
+    }
+    /* Ссылки */
+    .msg .text a {
+      color: inherit;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      opacity: 0.85;
+    }
+    .msg-row.mine .msg .text a { color: #fff; }
+    .msg .text a:hover { opacity: 1; }
+
+    /* Системные */
     .msg-row.system { justify-content: center; margin: 4px 0; }
-    .msg-row.system .msg { background: transparent; color: #999; font-size: 12px; padding: 2px 8px; max-width: 100%; text-align: center; }
+    .msg-row.system .msg {
+      background: transparent; color: var(--text-system);
+      font-size: 12px; padding: 2px 8px;
+      max-width: 100%; text-align: center;
+    }
 
+    /* --- Спиннер загрузки истории --- */
+    #history-loader {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 0 12px;
+      flex-shrink: 0;
+    }
+
+    #history-loader.hidden { display: none; }
+
+    .spinner {
+      width: 28px; height: 28px;
+      border: 3px solid var(--border);
+      border-top-color: #0078ff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* --- Кнопка прокрутки вниз --- */
+    #scroll-down {
+      position: absolute;
+      right: 16px; bottom: 10px;
+      width: 42px; height: 42px;
+      background: #0078ff;
+      border: none; border-radius: 50%;
+      color: #fff; font-size: 20px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,.3);
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 10;
+    }
+
+    #scroll-down.hidden { opacity: 0; pointer-events: none; transform: scale(0.7); }
+
+    #unread-badge {
+      position: absolute;
+      top: -5px; right: -5px;
+      background: #e53935;
+      color: #fff;
+      font-size: 10px; font-weight: 700;
+      min-width: 18px; height: 18px;
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 4px;
+    }
+
+    #unread-badge.hidden { display: none; }
+
+    /* --- Печатает --- */
     #typing-indicator {
       flex-shrink: 0;
       min-height: 20px;
       padding: 0 16px 4px;
       font-size: 12px;
-      color: #888;
+      color: var(--text-muted);
       font-style: italic;
     }
 
@@ -227,37 +381,56 @@
     #form {
       flex-shrink: 0;
       display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 8px 12px;
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+      background: var(--bg-form);
+      border-top: 1px solid var(--border);
+    }
+
+    #form-row {
+      display: flex;
       align-items: center;
       gap: 8px;
-      padding: 10px 12px;
-      padding-bottom: max(10px, env(safe-area-inset-bottom));
-      background: #fff;
-      border-top: 1px solid #e0e0e0;
     }
 
     #input {
       flex: 1;
       padding: 10px 14px;
-      border: 1px solid #ccc;
+      border: 1px solid var(--border);
       border-radius: 24px;
       font-size: 16px;
       outline: none;
-      background: #f8f8f8;
+      background: var(--bg-input);
+      color: var(--text);
+      transition: border-color 0.15s;
     }
 
-    #input:focus { border-color: #0078ff; background: #fff; }
+    #input:focus { border-color: #0078ff; }
+    #input::placeholder { color: var(--text-muted); }
+
+    /* Счётчик символов */
+    #char-counter {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: right;
+      padding-right: 54px;
+      height: 14px;
+      transition: color 0.15s;
+    }
+
+    #char-counter.warn  { color: #fb8c00; }
+    #char-counter.limit { color: #e53935; font-weight: 600; }
+    #char-counter.hidden { visibility: hidden; height: 0; }
 
     #send-btn {
       flex-shrink: 0;
-      width: 44px;
-      height: 44px;
+      width: 44px; height: 44px;
       background: #0078ff;
-      border: none;
-      border-radius: 50%;
+      border: none; border-radius: 50%;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       transition: background 0.15s, transform 0.1s;
     }
 
@@ -265,19 +438,22 @@
     #send-btn:active { transform: scale(0.93); }
     #send-btn svg { width: 20px; height: 20px; fill: #fff; }
 
+    /* Десктоп */
     @media (min-width: 640px) {
-      body { background: #dde3ea; }
+      body { background: #c8d4e0; }
+      @media (prefers-color-scheme: dark) { body { background: #07090e; } }
       #chat-wrapper, .modal-overlay {
         left: 50%; right: auto;
         transform: translateX(-50%);
         width: 600px;
       }
-      #chat-wrapper { box-shadow: 0 0 30px rgba(0,0,0,.15); }
+      #chat-wrapper { box-shadow: 0 0 40px rgba(0,0,0,.2); }
     }
   </style>
 </head>
 <body>
 
+  <!-- 1. Экран пароля -->
   <div class="modal-overlay solid hidden" id="password-screen">
     <div class="modal-box">
       <div class="icon">🔒</div>
@@ -289,6 +465,7 @@
     </div>
   </div>
 
+  <!-- 2. Экран имени -->
   <div class="modal-overlay solid hidden" id="name-screen">
     <div class="modal-box">
       <div class="icon">🕊️</div>
@@ -299,6 +476,7 @@
     </div>
   </div>
 
+  <!-- 3. Смена имени -->
   <div class="modal-overlay hidden" id="rename-screen">
     <div class="modal-box">
       <div class="icon">✏️</div>
@@ -310,7 +488,9 @@
     </div>
   </div>
 
+  <!-- Чат -->
   <div id="chat-wrapper">
+
     <div id="header">
       <div class="header-left">
         <span id="online-count">загрузка...</span>
@@ -324,18 +504,40 @@
       </div>
     </div>
 
-    <div id="messages"></div>
+    <div id="messages-wrap">
+      <div id="messages">
+        <div id="history-loader"><div class="spinner"></div></div>
+      </div>
+
+      <button id="scroll-down" class="hidden" title="Прокрутить вниз">
+        ↓
+        <span id="unread-badge" class="hidden"></span>
+      </button>
+    </div>
+
     <div id="typing-indicator"></div>
 
-    <form id="form">
-      <input id="input" type="text" placeholder="Сообщение..." autocomplete="off" enterkeyhint="send" />
-      <button type="submit" id="send-btn">
-        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
-      </button>
-    </form>
+    <div id="form">
+      <div id="form-row">
+        <input
+          id="input"
+          type="text"
+          placeholder="Сообщение... (*жирный* _курсив_ `код`)"
+          autocomplete="off"
+          enterkeyhint="send"
+          maxlength="2000"
+        />
+        <button type="button" id="send-btn">
+          <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+        </button>
+      </div>
+      <div id="char-counter" class="hidden"></div>
+    </div>
+
   </div>
 
   <script>
+    // ===== Элементы =====
     const passwordScreen = document.getElementById("password-screen");
     const passwordInput  = document.getElementById("password-input");
     const passwordBtn    = document.getElementById("password-btn");
@@ -349,34 +551,120 @@
     const renameCancel   = document.getElementById("rename-cancel");
     const settingsBtn    = document.getElementById("settings-btn");
     const messagesEl     = document.getElementById("messages");
+    const historyLoader  = document.getElementById("history-loader");
     const statusEl       = document.getElementById("status");
     const onlineEl       = document.getElementById("online-count");
     const typingEl       = document.getElementById("typing-indicator");
-    const form           = document.getElementById("form");
     const input          = document.getElementById("input");
+    const sendBtn        = document.getElementById("send-btn");
+    const charCounter    = document.getElementById("char-counter");
+    const scrollDownBtn  = document.getElementById("scroll-down");
+    const unreadBadge    = document.getElementById("unread-badge");
 
+    // ===== Состояние =====
     let myName        = localStorage.getItem("chat_name") || "";
     let savedPassword = localStorage.getItem("chat_password") || "";
     let wsReady       = false;
-    let stopReconnect = false; // true когда чат полный — не переподключаемся
-    let ws;
-    let reconnectTimer;
+    let stopReconnect = false;
+    let ws, reconnectTimer;
+    let unreadCount = 0;
+    let isAtBottom  = true;
 
-    // ===== СИСТЕМА АВТО-ПЕРЕПОДКЛЮЧЕНИЯ =====
+    // ===== Счётчик символов =====
+    input.addEventListener("input", () => {
+      const len  = input.value.length;
+      const left = 2000 - len;
+      if (len >= 1800) {
+        charCounter.textContent = `${left} симв. осталось`;
+        charCounter.className   = left <= 0 ? "limit" : "warn";
+      } else {
+        charCounter.className = "hidden";
+      }
+      sendTyping(true);
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => sendTyping(false), 2000);
+    });
+
+    // ===== Кнопка ↓ и счётчик непрочитанных =====
+    messagesEl.addEventListener("scroll", () => {
+      const dist = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight;
+      isAtBottom = dist < 60;
+      if (isAtBottom) {
+        scrollDownBtn.classList.add("hidden");
+        unreadCount = 0;
+        unreadBadge.classList.add("hidden");
+      } else {
+        scrollDownBtn.classList.remove("hidden");
+      }
+    });
+
+    scrollDownBtn.addEventListener("click", () => {
+      scrollToBottom(true);
+      unreadCount = 0;
+      unreadBadge.classList.add("hidden");
+    });
+
+    // ===== Разделители дат =====
+    let lastDateLabel = null;
+
+    function getDateLabel() {
+      const now  = new Date();
+      const today = now.toDateString();
+      const yesterday = new Date(now - 86400000).toDateString();
+      if (now.toDateString() === today)     return "Сегодня";
+      if (now.toDateString() === yesterday) return "Вчера";
+      return now.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+    }
+
+    function maybeInsertDateSeparator(label) {
+      if (!label || label === lastDateLabel) return;
+      lastDateLabel = label;
+      const wrap = document.createElement("div");
+      wrap.className = "date-separator";
+      const span = document.createElement("span");
+      span.textContent = label;
+      wrap.appendChild(span);
+      messagesEl.appendChild(wrap);
+    }
+
+    // ===== Форматирование текста =====
+    function formatText(raw) {
+      let s = raw
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+      // Ссылки — первыми чтобы не испортить другим форматированием
+      s = s.replace(
+        /(https?:\/\/[^\s<>"']+)/g,
+        '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+      );
+
+      // `код`
+      s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+      // *жирный*
+      s = s.replace(/\*([^*\n]+)\*/g, "<b>$1</b>");
+      // _курсив_
+      s = s.replace(/_([^_\n]+)_/g, "<i>$1</i>");
+
+      return s;
+    }
+
+    // ===== WebSocket — авто-переподключение =====
     function connect() {
       const protocol = location.protocol === "https:" ? "wss" : "ws";
       ws = new WebSocket(`${protocol}://${window.location.host}`);
 
-      ws.onopen  = () => { 
-        statusEl.textContent = "Online ✅"; 
-        wsReady = true; 
-        clearTimeout(reconnectTimer); // Отменяем таймер при успехе
+      ws.onopen = () => {
+        statusEl.textContent = "Online ✅";
+        wsReady = true;
+        clearTimeout(reconnectTimer);
       };
 
-      ws.onclose = () => { 
+      ws.onclose = () => {
         wsReady = false;
-        if (stopReconnect) return; // чат полный — не трогаем
-        statusEl.textContent = "Переподключение... ⏳"; 
+        if (stopReconnect) return;
+        statusEl.textContent = "Переподключение... ⏳";
         clearTimeout(reconnectTimer);
         reconnectTimer = setTimeout(connect, 3000);
       };
@@ -413,7 +701,6 @@
 
         if (data.type === "error") {
           if (data.code === "wrong-password") {
-            // Останавливаем авто-реконнект — ждём пока пользователь введёт пароль вручную
             stopReconnect = true;
             clearTimeout(reconnectTimer);
             localStorage.removeItem("chat_password");
@@ -424,22 +711,32 @@
             passwordScreen.classList.remove("hidden");
             setTimeout(() => { passwordInput.classList.remove("error"); passwordInput.focus(); }, 500);
           }
-          if (data.code === "full") { 
+          if (data.code === "full") {
             stopReconnect = true;
             clearTimeout(reconnectTimer);
-            showFullScreen(data.text); 
+            showFullScreen(data.text);
           }
           return;
         }
 
         if (data.type === "history") {
-          messagesEl.innerHTML = ""; // КРИТИЧНО: очищаем старую историю при реконнектах
-          data.messages.forEach((msg) => addMessage(msg, "theirs"));
+          historyLoader.classList.add("hidden");
+          // Очищаем всё кроме спиннера
+          Array.from(messagesEl.children).forEach(el => {
+            if (el.id !== "history-loader") el.remove();
+          });
+          lastDateLabel = null;
+          if (data.messages.length > 0) {
+            maybeInsertDateSeparator("История");
+            data.messages.forEach(msg => addMessage(msg, "theirs", true));
+          }
+          scrollToBottom(false);
           return;
         }
 
         if (data.type === "message") {
-          addMessage(data.message, "theirs");
+          maybeInsertDateSeparator(getDateLabel());
+          addMessage(data.message, "theirs", false);
           if (document.hidden) { showNotification(data.message.name, data.message.text); playSound(); }
           return;
         }
@@ -448,18 +745,18 @@
 
         if (data.type === "online") {
           const n = data.count;
-          const word = n === 1 ? "участник" : n < 5 ? "участника" : "участников";
-          onlineEl.textContent = `${n} / 15 ${word}`;
+          const w = n === 1 ? "участник" : n < 5 ? "участника" : "участников";
+          onlineEl.textContent = `${n} / 15 ${w}`;
           return;
         }
 
         if (data.type === "typing") { updateTyping(data.name, data.isTyping); }
       };
     }
-    
-    // Инициируем первое подключение
+
     connect();
 
+    // ===== Чат заполнен =====
     function showFullScreen(text) {
       passwordScreen.classList.add("hidden");
       nameScreen.classList.add("hidden");
@@ -475,15 +772,13 @@
       document.body.appendChild(overlay);
     }
 
+    // ===== Пароль =====
     function submitPassword() {
       const pwd = passwordInput.value.trim();
       if (!pwd) return;
       passwordError.textContent = "";
-
-      // Если соединение было остановлено (неверный пароль) — переподключаемся заново
       if (stopReconnect || !ws || ws.readyState !== WebSocket.OPEN) {
         stopReconnect = false;
-        // Ждём открытия нового соединения, потом шлём пароль
         connect();
         const tryAuth = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) {
@@ -497,8 +792,9 @@
     }
 
     passwordBtn.addEventListener("click", submitPassword);
-    passwordInput.addEventListener("keydown", (e) => { if (e.key === "Enter") submitPassword(); });
+    passwordInput.addEventListener("keydown", e => { if (e.key === "Enter") submitPassword(); });
 
+    // ===== Имя =====
     function submitName() {
       const val = nameInput.value.trim();
       if (!val) return;
@@ -509,8 +805,9 @@
     }
 
     nameBtn.addEventListener("click", submitName);
-    nameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") submitName(); });
+    nameInput.addEventListener("keydown", e => { if (e.key === "Enter") submitName(); });
 
+    // ===== Смена имени =====
     settingsBtn.addEventListener("click", () => {
       renameInput.value = myName;
       renameScreen.classList.remove("hidden");
@@ -532,35 +829,39 @@
     }
 
     renameBtn.addEventListener("click", submitRename);
-    renameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") submitRename(); });
+    renameInput.addEventListener("keydown", e => { if (e.key === "Enter") submitRename(); });
 
+    // ===== Вход =====
     function joinChat() {
       if (wsReady) {
+        historyLoader.classList.remove("hidden");
         ws.send(JSON.stringify({ type: "join", name: myName }));
         requestNotificationPermission();
       }
     }
 
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
+    // ===== Отправка =====
+    sendBtn.addEventListener("click", sendMessage);
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
+
+    function sendMessage() {
       const text = input.value.trim();
       if (!text || !wsReady) return;
       const time = new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+      maybeInsertDateSeparator(getDateLabel());
       ws.send(JSON.stringify({ type: "message", text }));
-      addMessage({ name: myName, text, time }, "mine");
+      addMessage({ name: myName, text, time }, "mine", false);
       input.value = "";
+      charCounter.className = "hidden";
       input.focus();
       sendTyping(false);
-    });
+    }
 
+    // ===== Печатает =====
     let typingTimer = null;
     const typingUsers = new Set();
-
-    input.addEventListener("input", () => {
-      sendTyping(true);
-      clearTimeout(typingTimer);
-      typingTimer = setTimeout(() => sendTyping(false), 2000);
-    });
 
     function sendTyping(isTyping) {
       if (wsReady) ws.send(JSON.stringify({ type: "typing", isTyping }));
@@ -574,6 +875,7 @@
       else                             typingEl.textContent = "Несколько человек печатают...";
     }
 
+    // ===== Service Worker =====
     async function registerSW() {
       if (!("serviceWorker" in navigator)) return;
       try { await navigator.serviceWorker.register("/sw.js"); } catch (e) {}
@@ -614,9 +916,12 @@
       } catch (e) {}
     }
 
-    function addMessage(msg, type) {
+    // ===== Рисуем сообщения =====
+    // fromHistory=true — без анимации и без счётчика непрочитанных
+    function addMessage(msg, type, fromHistory) {
       const row = document.createElement("div");
       row.className = `msg-row ${type}`;
+      if (fromHistory) row.style.animation = "none";
 
       if (type === "theirs") {
         const av = document.createElement("div");
@@ -639,7 +944,7 @@
 
       const textEl = document.createElement("span");
       textEl.className = "text";
-      textEl.textContent = msg.text;
+      textEl.innerHTML = formatText(msg.text);
       bubble.appendChild(textEl);
 
       if (msg.time) {
@@ -651,7 +956,15 @@
 
       row.appendChild(bubble);
       messagesEl.appendChild(row);
-      scrollToBottom();
+
+      // Счётчик непрочитанных — только новые чужие сообщения когда не внизу
+      if (!fromHistory && type === "theirs" && !isAtBottom) {
+        unreadCount++;
+        unreadBadge.textContent = unreadCount > 99 ? "99+" : unreadCount;
+        unreadBadge.classList.remove("hidden");
+      }
+
+      if (isAtBottom || fromHistory) scrollToBottom(false);
     }
 
     function addSystemMessage(text) {
@@ -662,7 +975,7 @@
       bubble.textContent = text;
       row.appendChild(bubble);
       messagesEl.appendChild(row);
-      scrollToBottom();
+      if (isAtBottom) scrollToBottom(false);
     }
 
     function nameToColor(name) {
@@ -678,12 +991,14 @@
       return colors[Math.abs(hash) % colors.length];
     }
 
-    function scrollToBottom() {
-      messagesEl.scrollTop = messagesEl.scrollHeight;
+    function scrollToBottom(smooth) {
+      messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: smooth ? "smooth" : "instant" });
+      isAtBottom = true;
     }
 
-    window.visualViewport?.addEventListener("resize", scrollToBottom);
-    window.visualViewport?.addEventListener("scroll", scrollToBottom);
+    window.visualViewport?.addEventListener("resize", () => { if (isAtBottom) scrollToBottom(false); });
+    window.visualViewport?.addEventListener("scroll", () => { if (isAtBottom) scrollToBottom(false); });
   </script>
+
 </body>
 </html>
