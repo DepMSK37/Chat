@@ -228,6 +228,15 @@
   </div>
 
   <script>
+    // Хелпер для Web Push
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); }
+      return outputArray;
+    }
     const passwordScreen = document.getElementById("password-screen"), passwordInput = document.getElementById("password-input"), passwordBtn = document.getElementById("password-btn"), passwordError = document.getElementById("password-error");
     const nameScreen = document.getElementById("name-screen"), nameInput = document.getElementById("name-input"), nameBtn = document.getElementById("name-btn");
     const renameScreen = document.getElementById("rename-screen"), renameInput = document.getElementById("rename-input"), renameBtn = document.getElementById("rename-btn"), renameCancel = document.getElementById("rename-cancel");
@@ -425,6 +434,17 @@
             });
           }
           if (dividerNode) { dividerNode.scrollIntoView({ behavior: "auto", block: "center" }); isAtBottom = false; } else scrollToBottom(false);
+          // === ЛОГИКА ПОДПИСКИ НА PUSH ===
+        if (data.vapidPublicKey && 'serviceWorker' in navigator && 'PushManager' in window) {
+          navigator.serviceWorker.ready.then(reg => {
+            reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(data.vapidPublicKey)
+            }).then(sub => {
+              ws.send(JSON.stringify({ type: "push-subscribe", subscription: sub }));
+            }).catch(err => console.warn("Ошибка подписки на Push:", err));
+          });
+        }
           return;
         }
 
