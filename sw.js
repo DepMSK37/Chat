@@ -27,7 +27,7 @@ self.addEventListener("message", (event) => {
 
 // НОВОЕ: Ловим фоновые Push-уведомления от серверов Google
 self.addEventListener("push", (event) => {
-  let data = { title: "🕊️ Голубь", body: "Новое сообщение" };
+  let data = { title: "🂡 Туз", body: "Новое сообщение" };
   
   try {
     if (event.data) {
