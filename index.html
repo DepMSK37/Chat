@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#0078ff" />
-  <title>Голубь</title>
+  <title>ТУЗ</title>
   <style>
     /* ===== ПЕРЕМЕННЫЕ И ТЕМЫ ===== */
     :root {
@@ -266,22 +266,22 @@
 
   <div id="image-viewer"><span id="viewer-close">×</span><img id="viewer-img" src="" alt=""></div>
 
-  <div class="modal-overlay solid hidden" id="password-screen"><div class="modal-box"><div class="icon">🔒</div><h2>Вход в Голубь</h2><input id="password-input" type="password" placeholder="Пароль" /><div class="error-text" id="password-error"></div><button class="modal-btn" id="password-btn">Войти</button></div></div>
-  <div class="modal-overlay solid hidden" id="name-screen"><div class="modal-box"><div class="icon">🕊️</div><h2>Добро пожаловать!</h2><input id="name-input" type="text" placeholder="Ваше имя" maxlength="20" /><button class="modal-btn" id="name-btn">Войти в чат</button></div></div>
+  <div class="modal-overlay solid hidden" id="password-screen"><div class="modal-box"><div class="icon">🔒</div><h2>Вход в Туза</h2><input id="password-input" type="password" placeholder="Пароль" /><div class="error-text" id="password-error"></div><button class="modal-btn" id="password-btn">Войти</button></div></div>
+  <div class="modal-overlay solid hidden" id="name-screen"><div class="modal-box"><div class="icon"><img src="aces.png" alt="Туз" style="height: 1em; vertical-align: bottom; object-fit: contain;"></div><h2>Добро пожаловать!</h2><input id="name-input" type="text" placeholder="Ваше имя" maxlength="20" /><button class="modal-btn" id="name-btn">Войти в чат</button></div></div>
   <div class="modal-overlay hidden" id="rename-screen"><div class="modal-box"><div class="icon">⚙️</div><h2>Настройки</h2><input id="rename-input" type="text" placeholder="Новое имя" maxlength="20" /><div style="display:flex; gap:8px; margin-bottom:16px; margin-top:10px;"><button class="theme-btn" data-theme="auto" id="theme-auto">🌗 Авто</button><button class="theme-btn" data-theme="light" id="theme-light">☀️ Светлая</button><button class="theme-btn" data-theme="dark" id="theme-dark">🌙 Тёмная</button></div><button class="modal-btn" id="rename-btn">Сохранить</button><button class="modal-btn secondary" id="rename-cancel">Отмена</button></div></div>
   <div class="modal-overlay hidden" id="users-screen"><div class="modal-box"><div class="icon">👥</div><h2>Участники онлайн</h2><div id="users-list"></div><button class="modal-btn secondary" id="users-close">Закрыть</button></div></div>
 
   <div id="chat-wrapper">
     <div id="header">
       <div class="header-left"><span id="online-count">загрузка...</span><span id="status">Подключение...</span></div>
-      <div class="header-center"><span id="header-title">🕊️ Голубь</span></div>
+      <div class="header-center"><span id="header-title"><img src="aces.png" alt="Туз" style="height: 1.1em; vertical-align: -0.15em; margin-right: 4px;"> Туз</span></div>
       <div class="header-right"><button id="settings-btn" title="Настройки">⚙️</button></div>
     </div>
     <div id="messages-wrap">
       <div id="messages">
         <div id="history-loader"><div class="spinner"></div></div>
         <div id="empty-state" class="hidden">
-          <div class="es-icon">🕊️</div>
+          <div class="es-icon"><img src="aces.png" alt="Туз" style="height: 1em; opacity: 0.8; object-fit: contain;"></div>
           <div class="es-title">Пока тихо</div>
           <div class="es-sub">Напишите первое сообщение —<br>оно откроет разговор</div>
         </div>
