@@ -141,7 +141,7 @@
       <div id="private-form-row">
         <!-- Изображение в личном чате -->
         <label id="private-attach-btn" title="Фото" style="width:42px;height:42px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:linear-gradient(145deg,#383d47,#262931);box-shadow:0 4px 6px rgba(0,0,0,.3),inset 0 2px 3px rgba(255,255,255,.15),inset 0 -3px 5px rgba(0,0,0,.6);color:rgba(255,255,255,.9);font-size:16px;">
-          📷<input type="file" id="private-file-input" accept="image/*" style="display:none">
+          📎<input type="file" id="private-file-input" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.zip,.rar,.txt,.csv" style="display:none">
         </label>
         <div id="private-input-wrap">
           <input id="private-input" type="text" placeholder="Сообщение..." autocomplete="off" enterkeyhint="send" maxlength="10000" />
@@ -750,10 +750,12 @@
 
         if (data.type === "message") {
           document.getElementById("empty-state").classList.add("hidden");
+          const isMine = data.message.name === myName;
+          // Если от меня — применяем группировку для mine, иначе для theirs
           maybeInsertDateSeparator(getDateLabel());
-          applyGroupingToLast("theirs");
-          addMessage(data.message, "theirs", false, "group-end");
-          if (document.hidden) { showNotification(data.message.name, data.message.text || "📎 Вложение"); playSound(); }
+          applyGroupingToLast(isMine ? "mine" : "theirs");
+          addMessage(data.message, isMine ? "mine" : "theirs", false, "group-end");
+          if (!isMine && document.hidden) { showNotification(data.message.name, data.message.text || "📎 Вложение"); playSound(); }
           return;
         }
 
@@ -883,12 +885,21 @@
       });
     }
 
+    // ===== ЗАГРУЗКА ФАЙЛА НА СЕРВЕР ЧЕРЕЗ HTTP (не через WebSocket!) =====
+    async function uploadToServer(base64, prefix, fileName, fileMime) {
+      const resp = await fetch("/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: base64, prefix, fileName: fileName||null, fileMime: fileMime||null })
+      });
+      if (!resp.ok) throw new Error("Ошибка загрузки");
+      return await resp.json(); // { url, fileName, fileMime }
+    }
+
     // ===== ОТПРАВКА СООБЩЕНИЯ (основной чат) =====
-    function sendMessage() {
+    async function sendMessage() {
       const text = input.value.trim();
       if (!text && !attachedImageBase64 && !attachedFileBase64 && !pendingVoiceBase64) return;
-
-      const time = new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
 
       // Режим редактирования
       if (editingMsgId) {
@@ -899,42 +910,53 @@
         cancelActionBtn.click(); return;
       }
 
-      document.getElementById("empty-state").classList.add("hidden");
-      maybeInsertDateSeparator(getDateLabel());
-      applyGroupingToLast("mine");
-      const msgId = generateId();
+      // Сохраняем вложения до очистки переменных
+      const imgB64  = attachedImageBase64;
+      const fileB64 = attachedFileBase64;
+      const fName   = attachedFileName;
+      const fMime   = attachedFileMime;
+      const voiceB64= pendingVoiceBase64;
 
-      const payload = { type: "message", text, id: msgId };
-      if (replyingToMsg) payload.replyTo = replyingToMsg;
-
-      const localMsg = { id: msgId, name: myName, text, time, read: false, replyTo: replyingToMsg };
-
-      // Показываем прогресс при наличии вложения
-      let prog = null;
-      if (attachedImageBase64) {
-        payload.imageBase64 = attachedImageBase64;
-        localMsg.imageUrl = attachedImageBase64;
-        prog = showProgress(uploadProgressBar, uploadProgress);
-      } else if (attachedFileBase64) {
-        payload.fileBase64 = attachedFileBase64;
-        payload.fileName = attachedFileName;
-        payload.fileMime = attachedFileMime;
-        localMsg.fileUrl = "#pending"; localMsg.fileName = attachedFileName; localMsg.fileMime = attachedFileMime;
-        prog = showProgress(uploadProgressBar, uploadProgress);
-      } else if (pendingVoiceBase64) {
-        payload.voiceBase64 = pendingVoiceBase64;
-        localMsg.voiceUrl = pendingVoiceBase64; // временно для локального отображения
-        prog = showProgress(uploadProgressBar, uploadProgress);
-      }
-
-      enqueueOrSend(payload, localMsg);
-      if (prog) setTimeout(() => prog.finish(), 800);
-
-      addMessage(localMsg, "mine", false, "group-end");
-
+      // Сбрасываем состояние немедленно
       input.value = ""; cancelActionBtn.click(); input.focus();
       attachedImageBase64 = null; attachedFileBase64 = null; attachedFileName = null; attachedFileMime = null; pendingVoiceBase64 = null;
       sendTyping(false);
+
+      const hasMedia = !!(imgB64 || fileB64 || voiceB64);
+
+      // Показываем прогресс-бар если есть вложение
+      let prog = null;
+      if (hasMedia) prog = showProgress(uploadProgressBar, uploadProgress);
+
+      const msgId = generateId();
+      const payload = { type: "message", text, id: msgId };
+      if (replyingToMsg) payload.replyTo = replyingToMsg;
+
+      try {
+        // Загружаем файл на сервер через HTTP, получаем URL
+        if (imgB64) {
+          const r = await uploadToServer(imgB64, "img");
+          payload.imageUrl = r.url;
+        } else if (voiceB64) {
+          const r = await uploadToServer(voiceB64, "voice");
+          payload.voiceUrl = r.url;
+        } else if (fileB64) {
+          const r = await uploadToServer(fileB64, "file", fName, fMime);
+          payload.fileUrl = r.url;
+          payload.fileName = r.fileName || fName;
+          payload.fileMime = r.fileMime || fMime;
+        }
+      } catch(e) {
+        if (prog) prog.finish();
+        alert("Не удалось загрузить файл. Проверьте соединение.");
+        return;
+      }
+
+      if (prog) prog.finish();
+
+      // Отправляем через WebSocket только текст + URL (никакого base64!)
+      // Сервер рассылает ВСЕМ включая отправителя → addMessage вызовется через WS
+      enqueueOrSend(payload, null);
     }
 
     sendBtn.addEventListener("click", sendMessage);
@@ -1023,6 +1045,9 @@
     let currentPrivateChatId = null;
     let privateReplyingToMsg = null;
     let privateAttachedImageBase64 = null;
+    let privateAttachedFileBase64 = null;
+    let privateAttachedFileName = null;
+    let privateAttachedFileMime = null;
     let privatePendingVoiceBase64 = null;
 
     // Наблюдатель прочтения для личного чата
@@ -1062,60 +1087,99 @@
       currentPrivateChatId = null;
       privateReplyingToMsg = null;
       privateAttachedImageBase64 = null;
+      privateAttachedFileBase64 = null;
+      privateAttachedFileName = null;
+      privateAttachedFileMime = null;
       privatePendingVoiceBase64 = null;
     });
 
     // Отправка в личном чате
-    function sendPrivateMessage() {
+    async function sendPrivateMessage() {
       if (!currentPrivateChatId) return;
       const text = privateInput.value.trim();
-      if (!text && !privateAttachedImageBase64 && !privatePendingVoiceBase64) return;
+      if (!text && !privateAttachedImageBase64 && !privateAttachedFileBase64 && !privatePendingVoiceBase64) return;
 
-      const msgId = generateId();
-      const time = new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-      const payload = { type: "private-message", chatId: currentPrivateChatId, text, id: msgId };
-      if (privateReplyingToMsg) payload.replyTo = privateReplyingToMsg;
+      const imgB64   = privateAttachedImageBase64;
+      const fileB64  = privateAttachedFileBase64;
+      const fName    = privateAttachedFileName;
+      const fMime    = privateAttachedFileMime;
+      const voiceB64 = privatePendingVoiceBase64;
 
-      const localMsg = { id: msgId, name: myName, text, time, read: false, replyTo: privateReplyingToMsg };
-
-      if (privateAttachedImageBase64) {
-        payload.imageBase64 = privateAttachedImageBase64;
-        localMsg.imageUrl = privateAttachedImageBase64;
-        const p = showProgress(document.getElementById("private-upload-bar"), document.getElementById("private-upload-progress"));
-        setTimeout(() => p.finish(), 800);
-      }
-      if (privatePendingVoiceBase64) {
-        payload.voiceBase64 = privatePendingVoiceBase64;
-        localMsg.voiceUrl = privatePendingVoiceBase64;
-      }
-
-      enqueueOrSend(payload, localMsg, "private");
-      addMessage(localMsg, "mine", false, "group-end", privateMessages, privateReadObserver);
-
+      // Сброс сразу
       privateInput.value = "";
-      privateAttachedImageBase64 = null; privatePendingVoiceBase64 = null;
+      privateAttachedImageBase64 = null; privateAttachedFileBase64 = null;
+      privateAttachedFileName = null; privateAttachedFileMime = null;
+      privatePendingVoiceBase64 = null;
       privateReplyingToMsg = null;
       privateActionBar.classList.remove("active");
       privateInput.focus();
+
+      const hasMedia = !!(imgB64 || fileB64 || voiceB64);
+      let prog = null;
+      if (hasMedia) prog = showProgress(document.getElementById("private-upload-bar"), document.getElementById("private-upload-progress"));
+
+      const msgId = generateId();
+      const payload = { type: "private-message", chatId: currentPrivateChatId, text, id: msgId };
+      if (privateReplyingToMsg) payload.replyTo = privateReplyingToMsg;
+
+      try {
+        if (imgB64) {
+          const r = await uploadToServer(imgB64, "pv-img");
+          payload.imageUrl = r.url;
+        } else if (voiceB64) {
+          const r = await uploadToServer(voiceB64, "pv-voice");
+          payload.voiceUrl = r.url;
+        } else if (fileB64) {
+          const r = await uploadToServer(fileB64, "pv-file", fName, fMime);
+          payload.fileUrl = r.url;
+          payload.fileName = r.fileName || fName;
+          payload.fileMime = r.fileMime || fMime;
+        }
+      } catch(e) {
+        if (prog) prog.finish();
+        alert("Не удалось загрузить файл.");
+        return;
+      }
+
+      if (prog) prog.finish();
+      // Сервер рассылает обоим участникам включая отправителя → addMessage вызовется через WS
+      enqueueOrSend(payload, null, "private");
     }
 
     privateSendBtn.addEventListener("click", sendPrivateMessage);
     privateInput.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendPrivateMessage(); } });
 
-    // Фото в личном чате
+    // Файл/фото в личном чате
     privateFileInput.addEventListener("change", (e) => {
       const file = e.target.files[0]; if (!file) return;
-      compressImage(file, b64 => {
-        privateAttachedImageBase64 = b64;
-        privateActionBar.classList.add("active");
-        privateActionTitle.textContent = "Вложение"; privateActionTitle.style.color = "#43a047";
-        privateActionText.textContent = "🖼️ Фотография готова";
-      });
+      if (file.type.startsWith("image/")) {
+        compressImage(file, b64 => {
+          privateAttachedImageBase64 = b64; privateAttachedFileBase64 = null;
+          privateActionBar.classList.add("active");
+          privateActionTitle.textContent = "Вложение"; privateActionTitle.style.color = "#43a047";
+          privateActionText.textContent = "🖼️ Фотография готова";
+        });
+      } else {
+        if (file.size > 20*1024*1024) { alert("Файл слишком большой (макс. 20МБ)"); e.target.value=""; return; }
+        const reader = new FileReader();
+        reader.onload = ev => {
+          privateAttachedFileBase64 = ev.target.result; privateAttachedImageBase64 = null;
+          privateAttachedFileName = file.name; privateAttachedFileMime = file.type;
+          const sz = file.size > 1048576 ? `${(file.size/1048576).toFixed(1)}МБ` : `${Math.round(file.size/1024)}КБ`;
+          const icon = file.type.startsWith("video/") ? "🎬" : file.type.startsWith("audio/") ? "🎵" : "📎";
+          privateActionBar.classList.add("active");
+          privateActionTitle.textContent = "Файл"; privateActionTitle.style.color = "#8e24aa";
+          privateActionText.textContent = `${icon} ${file.name} (${sz})`;
+        };
+        reader.readAsDataURL(file);
+      }
       e.target.value = "";
     });
 
     privateCancelAction.addEventListener("click", () => {
-      privateAttachedImageBase64 = null; privatePendingVoiceBase64 = null; privateReplyingToMsg = null;
+      privateAttachedImageBase64 = null; privateAttachedFileBase64 = null;
+      privateAttachedFileName = null; privateAttachedFileMime = null;
+      privatePendingVoiceBase64 = null; privateReplyingToMsg = null;
       privateInput.value = ""; privateActionBar.classList.remove("active");
     });
 
